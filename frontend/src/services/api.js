@@ -48,9 +48,11 @@ export const fleetApi = {
 
 // ── Copilot API ───────────────────────────────────────────────────
 export const copilotApi = {
-  query: (payload) =>
-    axios.post(
-      `${import.meta.env.VITE_COPILOT_URL || 'http://localhost:8001'}/query`,
-      payload,
-    ),
+  query: (payload) => {
+    const copilotUrl = import.meta.env.VITE_COPILOT_URL
+    const endpoint = copilotUrl
+      ? `${copilotUrl}/query`
+      : `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/copilot/query`
+    return axios.post(endpoint, payload)
+  },
 }

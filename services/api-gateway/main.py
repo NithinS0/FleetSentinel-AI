@@ -14,7 +14,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from core.config import settings
 from core.database import engine, Base
 from core.redis_client import redis_client
-from routers import auth, vehicles, alerts, predictions, maintenance, fingerprints, metrics, ws
+from routers import auth, vehicles, alerts, predictions, maintenance, fingerprints, metrics, ws, copilot
 
 
 @asynccontextmanager
@@ -58,6 +58,7 @@ app.include_router(maintenance.router,  prefix="/maintenance",  tags=["Maintenan
 app.include_router(fingerprints.router, prefix="/fingerprints", tags=["Fingerprints"])
 app.include_router(metrics.router,      prefix="/metrics-api",  tags=["Metrics"])
 app.include_router(ws.router,           prefix="/ws",           tags=["WebSocket"])
+app.include_router(copilot.router,      prefix="/copilot",      tags=["Copilot"])
 
 
 @app.get("/health", tags=["Health"])

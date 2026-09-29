@@ -67,12 +67,35 @@
 
 ## 4. Step 2: Deploy Backend Services to Render or Railway
 
-### Deploying with Render (Using Blueprint `render.yaml`)
-1. Create a free account at [https://render.com](https://render.com).
-2. Click **New +** → **Blueprint**.
-3. Connect your GitHub repository. Render will automatically detect [`render.yaml`](file:///d:/FleetSentinel%20AI/render.yaml) and configure:
-   - `fleetsentinel-api-gateway` (FastAPI on Port 8000)
-   - `fleetsentinel-copilot-service` (FastAPI on Port 8001)
+### 100% Free Backend Deployment (Zero Credit Card Required)
+
+> **Why Render Blueprint asks for money**: Render Blueprints (`render.yaml`) deploy multi-service infrastructures, which triggers a credit card requirement. **To deploy for 100% free with no credit card**, use either **Manual Render Web Service** or **Koyeb Free Tier** below.
+
+#### Option 1: Render Free Web Service (Manual — 100% FREE, No Credit Card)
+1. Go to [https://dashboard.render.com](https://dashboard.render.com).
+2. Click **New +** → select **Web Service** (NOT Blueprint).
+3. Connect your repository `FleetSentinel-AI`.
+4. Configure service settings:
+   - **Name**: `fleetsentinel-api`
+   - **Root Directory**: `services/api-gateway`
+   - **Runtime**: `Python 3`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+   - **Instance Type**: Select **Free ($0 / month)** *(Render does NOT require a credit card for the manual free tier)*
+5. Add Environment Variables:
+   - `DATABASE_URL`: your Supabase postgresql string
+   - `SUPABASE_URL`: your Supabase project URL
+   - `SUPABASE_SERVICE_ROLE_KEY`: your service role key
+   - `GEMINI_API_KEY`: your Gemini API key
+   - `GROQ_API_KEY`: your Groq API key
+6. Click **Create Web Service**. All API Gateway endpoints and the AI Copilot (`/copilot/query`) are unified in this single service!
+
+#### Option 2: Koyeb Free Tier (100% Free Forever, No Credit Card)
+1. Sign up for free at [https://www.koyeb.com](https://www.koyeb.com) using GitHub.
+2. Click **Create Service** → **GitHub** → select `FleetSentinel-AI`.
+3. Set **Root Directory** to `services/api-gateway`.
+4. Select the **Nano (Free, $0)** instance.
+5. Add your environment variables and click **Deploy**.
 4. Populate the environment variables prompted by Render:
    - `DATABASE_URL`: `postgresql://postgres:<YOUR_DB_PASSWORD>@db.<YOUR_PROJECT_REF>.supabase.co:5432/postgres`
    - `SUPABASE_URL`: `https://<YOUR_PROJECT_REF>.supabase.co`
