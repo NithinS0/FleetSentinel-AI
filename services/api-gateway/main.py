@@ -21,10 +21,17 @@ from routers import auth, vehicles, alerts, predictions, maintenance, fingerprin
 async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle."""
     # Startup
-    await redis_client.connect()
+    try:
+        await redis_client.connect()
+    except Exception as e:
+        import logging
+        logging.getLogger("api_gateway").warning(f"Redis connection postponed/failed: {e}")
     yield
     # Shutdown
-    await redis_client.close()
+    try:
+        await redis_client.close()
+    except Exception:
+        pass
 
 
 app = FastAPI(

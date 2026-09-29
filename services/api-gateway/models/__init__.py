@@ -16,6 +16,7 @@ from core.database import Base
 
 class Vehicle(Base):
     __tablename__ = "vehicles"
+    __allow_unmapped__ = True
 
     id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id     = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True)
@@ -32,8 +33,8 @@ class Vehicle(Base):
     updated_at    = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Runtime properties (not in DB — from Redis/computed)
-    status: Optional[str] = None
-    health_score: Optional[float] = None
+    status = None
+    health_score = None
 
     def to_dict(self) -> dict:
         return {
