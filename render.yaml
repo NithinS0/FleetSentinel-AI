@@ -1,0 +1,51 @@
+services:
+  # FleetSentinel API Gateway
+  - type: web
+    name: fleetsentinel-api-gateway
+    env: python
+    region: oregon
+    plan: starter
+    rootDir: services/api-gateway
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: PORT
+        value: 8000
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: REDIS_REST_URL
+        sync: false
+      - key: KAFKA_BOOTSTRAP_SERVERS
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+
+  # FleetSentinel AI Copilot Service (Gemini 3 Flash)
+  - type: web
+    name: fleetsentinel-copilot-service
+    env: python
+    region: oregon
+    plan: starter
+    rootDir: services/copilot-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: PORT
+        value: 8001
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: API_GATEWAY_URL
+        fromService:
+          type: web
+          name: fleetsentinel-api-gateway
+          property: host

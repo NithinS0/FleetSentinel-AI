@@ -1,0 +1,359 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────
+# FleetSentinel AI — Full Infrastructure Stack
+# ─────────────────────────────────────────────────────────────────
+
+x-common-env: &common-env
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: 5432
+  POSTGRES_DB: ${POSTGRES_DB:-fleetsentinel}
+  POSTGRES_USER: ${POSTGRES_USER:-fleetsentinel}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fleetsentinel_secret}
+  MONGO_URI: mongodb://mongo:27017/fleetsentinel
+  REDIS_URL: redis://redis:6379/0
+  KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+  SECRET_KEY: ${SECRET_KEY:-changeme_in_production_32chars_min}
+  ENVIRONMENT: ${ENVIRONMENT:-development}
+
+services:
+  # ─── Infrastructure: Zookeeper ───────────────────────────────
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: fs_zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_log:/var/lib/zookeeper/log
+    healthcheck:
+      test: echo ruok | nc localhost 2181 || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Infrastructure: Kafka ───────────────────────────────────
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: fs_kafka
+    restart: unless-stopped
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 12
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_LOG_RETENTION_HOURS: 168
+    ports:
+      - "29092:29092"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: kafka-broker-api-versions --bootstrap-server localhost:9092
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  # ─── Infrastructure: Kafka UI ────────────────────────────────
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: fs_kafka_ui
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_CLUSTERS_0_NAME: fleetsentinel
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    ports:
+      - "8090:8080"
+
+  # ─── Infrastructure: PostgreSQL ──────────────────────────────
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    container_name: fs_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-fleetsentinel}
+      POSTGRES_USER: ${POSTGRES_USER:-fleetsentinel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fleetsentinel_secret}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: pg_isready -U fleetsentinel
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ─── Infrastructure: MongoDB ─────────────────────────────────
+  mongo:
+    image: mongo:7.0
+    container_name: fs_mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: fleetsentinel
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/fleetsentinel --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ─── Infrastructure: Redis ───────────────────────────────────
+  redis:
+    image: redis:7.2-alpine
+    container_name: fs_redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redis_secret} --maxmemory 512mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: redis-cli -a ${REDIS_PASSWORD:-redis_secret} ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Vehicle Simulator ───────────────────────────────────────
+  simulator:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+    container_name: fs_simulator
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      <<: *common-env
+      VEHICLE_COUNT: ${VEHICLE_COUNT:-100000}
+      EVENTS_PER_SECOND: ${EVENTS_PER_SECOND:-100000}
+      KAFKA_TOPIC_TELEMETRY: vehicle.telemetry
+      SIMULATOR_MODE: ${SIMULATOR_MODE:-realistic}
+      FAULT_INJECTION_RATE: ${FAULT_INJECTION_RATE:-0.05}
+    volumes:
+      - ./simulator:/app
+
+  # ─── Stream Processing Service ───────────────────────────────
+  stream-processor:
+    build:
+      context: ./services/stream-processing
+      dockerfile: Dockerfile
+    container_name: fs_stream_processor
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      <<: *common-env
+      KAFKA_TOPIC_TELEMETRY: vehicle.telemetry
+      KAFKA_TOPIC_ANOMALIES: vehicle.anomalies
+      KAFKA_TOPIC_FEATURES: vehicle.features
+      KAFKA_GROUP_ID: stream-processor
+      WINDOW_SIZE_SECONDS: 60
+      ANOMALY_THRESHOLD: 2.5
+
+  # ─── Prediction Service ──────────────────────────────────────
+  prediction-service:
+    build:
+      context: ./services/prediction-service
+      dockerfile: Dockerfile
+    container_name: fs_prediction
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      <<: *common-env
+      KAFKA_TOPIC_FEATURES: vehicle.features
+      KAFKA_TOPIC_PREDICTIONS: vehicle.predictions
+      KAFKA_GROUP_ID: prediction-service
+      MODEL_PATH: /app/models
+    volumes:
+      - model_data:/app/models
+
+  # ─── Alert Service ───────────────────────────────────────────
+  alert-service:
+    build:
+      context: ./services/alert-service
+      dockerfile: Dockerfile
+    container_name: fs_alert
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      <<: *common-env
+      KAFKA_TOPIC_PREDICTIONS: vehicle.predictions
+      KAFKA_TOPIC_ALERTS: vehicle.alerts
+      KAFKA_GROUP_ID: alert-service
+      HIGH_RISK_THRESHOLD: 0.75
+      CRITICAL_RISK_THRESHOLD: 0.90
+
+  # ─── Fingerprint Service ─────────────────────────────────────
+  fingerprint-service:
+    build:
+      context: ./services/fingerprint-service
+      dockerfile: Dockerfile
+    container_name: fs_fingerprint
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      <<: *common-env
+      KAFKA_TOPIC_PREDICTIONS: vehicle.predictions
+      KAFKA_GROUP_ID: fingerprint-service
+      EMBEDDING_MODEL: all-MiniLM-L6-v2
+      SIMILARITY_THRESHOLD: 0.75
+
+  # ─── API Gateway ─────────────────────────────────────────────
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: fs_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    environment:
+      <<: *common-env
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_secret}
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      REFRESH_TOKEN_EXPIRE_DAYS: 7
+      RATE_LIMIT_PER_MINUTE: 200
+      CORS_ORIGINS: '["http://localhost:3000","http://localhost:5173"]'
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./services/api-gateway:/app
+    healthcheck:
+      test: curl -f http://localhost:8000/health || exit 1
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ─── Copilot Service ─────────────────────────────────────────
+  copilot-service:
+    build:
+      context: ./services/copilot-service
+      dockerfile: Dockerfile
+    container_name: fs_copilot
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      <<: *common-env
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_secret}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      API_GATEWAY_URL: http://api-gateway:8000
+    ports:
+      - "8001:8001"
+
+  # ─── React Frontend ──────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+        VITE_COPILOT_URL: ${VITE_COPILOT_URL:-http://localhost:8001}
+        VITE_WS_URL: ${VITE_WS_URL:-ws://localhost:8000}
+    container_name: fs_frontend
+    restart: unless-stopped
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    ports:
+      - "3000:80"
+
+  # ─── Observability: Prometheus ───────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.49.0
+    container_name: fs_prometheus
+    restart: unless-stopped
+    volumes:
+      - ./deployment/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+    ports:
+      - "9090:9090"
+
+  # ─── Observability: Grafana ──────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.3.0
+    container_name: fs_grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-fleetsentinel}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./deployment/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./deployment/grafana/datasources:/etc/grafana/provisioning/datasources
+    ports:
+      - "3001:3000"
+
+volumes:
+  zookeeper_data:
+  zookeeper_log:
+  kafka_data:
+  postgres_data:
+  mongo_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+  model_data:
+
+networks:
+  default:
+    name: fleetsentinel_network
