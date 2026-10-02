@@ -51,38 +51,39 @@ export default function LandingPage() {
         position: 'sticky',
         top: 0,
         zIndex: 100,
-        background: 'rgba(6, 19, 31, 0.85)',
+        background: 'rgba(255, 255, 255, 0.95)',
         backdropFilter: 'blur(16px)',
         borderBottom: '1px solid var(--border)',
         padding: '14px 32px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        boxShadow: '0 1px 4px rgba(15,23,42,0.04)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }} onClick={() => navigate('/landing')}>
           <div style={{
             width: 36,
             height: 36,
             borderRadius: 'var(--r-md)',
-            background: 'linear-gradient(135deg, #1688FF, #19D3D1)',
+            background: 'linear-gradient(135deg, #2563EB, #06B6D4)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 0 16px rgba(22,136,255,0.4)',
+            boxShadow: '0 2px 10px rgba(37,99,235,0.3)',
           }}>
             <Shield size={20} color="#fff" />
           </div>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 6 }}>
-              FleetSentinel <span style={{ color: 'var(--accent-cyan)' }}>AI</span>
+            <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 6, color: '#0F172A' }}>
+              FleetSentinel <span style={{ color: '#2563EB' }}>AI</span>
             </div>
-            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#64748B' }}>
               AUTOMOTIVE INTELLIGENCE
             </div>
           </div>
         </div>
 
-        <div className="hidden md:flex" style={{ display: 'flex', alignItems: 'center', gap: 28, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>
+        <div className="hidden md:flex" style={{ display: 'flex', alignItems: 'center', gap: 28, fontSize: 13, fontWeight: 600, color: '#475569' }}>
           <button onClick={() => scrollToSection('problem')} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', transition: 'color 0.2s' }}>The Problem</button>
           <button onClick={() => scrollToSection('how-it-works')} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', transition: 'color 0.2s' }}>Intelligence</button>
           <button onClick={() => scrollToSection('fingerprints')} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', transition: 'color 0.2s' }}>Fingerprints</button>
@@ -93,16 +94,38 @@ export default function LandingPage() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button
-            className="btn btn-ghost"
             onClick={() => navigate('/login')}
-            style={{ fontSize: 13, padding: '7px 16px' }}
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              padding: '8px 16px',
+              borderRadius: 8,
+              background: '#FFFFFF',
+              border: '1px solid #CBD5E1',
+              color: '#0F172A',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
           >
             Sign In
           </button>
           <button
-            className="btn btn-primary"
             onClick={() => navigate('/dashboard')}
-            style={{ fontSize: 13, padding: '7px 18px', display: 'flex', alignItems: 'center', gap: 6 }}
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              padding: '8px 18px',
+              borderRadius: 8,
+              background: '#2563EB',
+              border: 'none',
+              color: '#FFFFFF',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              boxShadow: '0 2px 8px rgba(37,99,235,0.25)',
+              transition: 'all 0.15s ease',
+            }}
           >
             Launch Console <ArrowRight size={14} />
           </button>
@@ -217,50 +240,50 @@ export default function LandingPage() {
             maxWidth: 1060,
             margin: '60px auto 0',
           }}>
-            <div className="card" style={{ padding: '20px 24px', textAlign: 'left', background: 'var(--bg-card)' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', marginBottom: 4 }}>
+            <div style={{ padding: '20px 24px', textAlign: 'left', background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 14, boxShadow: '0 4px 16px rgba(15,23,42,0.04)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', letterSpacing: '0.06em', marginBottom: 4 }}>
                 CONNECTED ASSETS
               </div>
-              <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+              <div style={{ fontSize: 32, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
                 100,000+
               </div>
-              <div style={{ fontSize: 12, color: 'var(--success)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#16A34A', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
                 <CheckCircle2 size={13} /> Real-time edge telemetry
               </div>
             </div>
 
-            <div className="card" style={{ padding: '20px 24px', textAlign: 'left', background: 'var(--bg-card)' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', marginBottom: 4 }}>
+            <div style={{ padding: '20px 24px', textAlign: 'left', background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 14, boxShadow: '0 4px 16px rgba(15,23,42,0.04)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', letterSpacing: '0.06em', marginBottom: 4 }}>
                 INGESTION THROUGHPUT
               </div>
-              <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--accent-cyan)', letterSpacing: '-0.02em' }}>
+              <div style={{ fontSize: 32, fontWeight: 800, color: '#0284C7', letterSpacing: '-0.02em' }}>
                 100K+
               </div>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+              <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>
                 {eventCount.toLocaleString()} events/sec live
               </div>
             </div>
 
-            <div className="card" style={{ padding: '20px 24px', textAlign: 'left', background: 'var(--bg-card)' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', marginBottom: 4 }}>
+            <div style={{ padding: '20px 24px', textAlign: 'left', background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 14, boxShadow: '0 4px 16px rgba(15,23,42,0.04)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', letterSpacing: '0.06em', marginBottom: 4 }}>
                 CRITICAL ALERT LATENCY
               </div>
-              <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--accent-blue)', letterSpacing: '-0.02em' }}>
+              <div style={{ fontSize: 32, fontWeight: 800, color: '#2563EB', letterSpacing: '-0.02em' }}>
                 &lt; 5s
               </div>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+              <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>
                 Sub-second edge anomaly detection
               </div>
             </div>
 
-            <div className="card" style={{ padding: '20px 24px', textAlign: 'left', background: 'var(--bg-card)' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', marginBottom: 4 }}>
+            <div style={{ padding: '20px 24px', textAlign: 'left', background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 14, boxShadow: '0 4px 16px rgba(15,23,42,0.04)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', letterSpacing: '0.06em', marginBottom: 4 }}>
                 AVAILABILITY TARGET
               </div>
-              <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--accent-purple)', letterSpacing: '-0.02em' }}>
+              <div style={{ fontSize: 32, fontWeight: 800, color: '#7C3AED', letterSpacing: '-0.02em' }}>
                 99.9%
               </div>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+              <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>
                 High-availability cluster SLA
               </div>
             </div>
@@ -674,38 +697,49 @@ export default function LandingPage() {
       <section style={{
         padding: '100px 24px',
         textAlign: 'center',
-        background: 'linear-gradient(180deg, var(--bg-app) 0%, #0A1D2C 100%)',
-        borderTop: '1px solid var(--border)',
+        background: 'linear-gradient(180deg, #F8FAFC 0%, #EFF6FF 100%)',
+        borderTop: '1px solid #E2E8F0',
       }}>
         <div style={{ maxWidth: 760, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 'clamp(32px, 4vw, 48px)', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: 18 }}>
+          <h2 style={{ fontSize: 'clamp(32px, 4vw, 48px)', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: 18, color: '#0F172A' }}>
             Ready to Keep Your Fleet Moving?
           </h2>
-          <p style={{ fontSize: 16, color: 'var(--text-secondary)', marginBottom: 36, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 16, color: '#475569', marginBottom: 36, lineHeight: 1.6 }}>
             Join leading enterprise logistics, EV fleets, and transit operators using FleetSentinel AI to eliminate roadside breakdowns.
           </p>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, flexWrap: 'wrap' }}>
             <button
-              className="btn btn-primary"
               onClick={() => navigate('/dashboard')}
               style={{
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: 700,
-                padding: '14px 34px',
-                borderRadius: 'var(--r-md)',
+                padding: '14px 32px',
+                borderRadius: 10,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 8,
-                boxShadow: '0 0 24px rgba(22,136,255,0.4)',
+                background: '#2563EB',
+                border: 'none',
+                color: '#FFFFFF',
+                boxShadow: '0 4px 16px rgba(37,99,235,0.25)',
+                cursor: 'pointer',
               }}
             >
               Launch Live Console <ArrowRight size={16} />
             </button>
             <button
-              className="btn btn-ghost"
               onClick={() => navigate('/login')}
-              style={{ fontSize: 16, fontWeight: 600, padding: '14px 28px', borderRadius: 'var(--r-md)' }}
+              style={{
+                fontSize: 15,
+                fontWeight: 600,
+                padding: '14px 28px',
+                borderRadius: 10,
+                background: '#FFFFFF',
+                border: '1px solid #CBD5E1',
+                color: '#0F172A',
+                cursor: 'pointer',
+              }}
             >
               Sign In to Workspace
             </button>

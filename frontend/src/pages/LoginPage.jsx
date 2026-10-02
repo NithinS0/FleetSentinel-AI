@@ -169,39 +169,47 @@ export default function LoginPage() {
 
           {/* Live Ingestion Health Ticker Card */}
           <div style={{
-            background: 'rgba(16,40,60,0.6)',
-            border: '1px solid rgba(29,64,87,0.8)',
-            backdropFilter: 'blur(10px)',
-            borderRadius: 14,
-            padding: '16px 20px',
+            background: '#FFFFFF',
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 4px 20px rgba(15,23,42,0.06)',
+            borderRadius: 16,
+            padding: '20px 24px',
             display: 'flex',
             flexDirection: 'column',
-            gap: 12,
+            gap: 14,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--success)', animation: 'pulse 1.8s infinite' }} />
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--success)' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                background: '#F0FDF4',
+                border: '1px solid #BBF7D0',
+                padding: '4px 10px',
+                borderRadius: 20,
+              }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#16A34A', animation: 'pulse 1.8s infinite' }} />
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: '#16A34A' }}>
                   STREAM PIPELINE LIVE (103,482 evt/s)
                 </span>
               </div>
-              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: '#64748B' }}>
                 Kafka v3.6 · TimescaleDB
               </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, paddingTop: 4 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, paddingTop: 4 }}>
               <div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>CONNECTED FLEET</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)' }}>100,000</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#64748B', letterSpacing: '0.04em' }}>CONNECTED FLEET</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', marginTop: 2 }}>100,000</div>
               </div>
               <div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>MODEL ACCURACY</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--accent-cyan)' }}>94.6%</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#64748B', letterSpacing: '0.04em' }}>MODEL ACCURACY</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#2563EB', marginTop: 2 }}>94.6%</div>
               </div>
               <div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>AVOIDED COSTS</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--success)' }}>$1.84M</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#64748B', letterSpacing: '0.04em' }}>AVOIDED COSTS</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#16A34A', marginTop: 2 }}>$1.84M</div>
               </div>
             </div>
           </div>
@@ -397,13 +405,13 @@ export default function LoginPage() {
           <div style={{
             marginTop: 20,
             paddingTop: 16,
-            borderTop: '1px solid rgba(29,64,87,0.6)',
+            borderTop: '1px solid #E2E8F0',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: 16,
             fontSize: 11,
-            color: 'var(--text-muted)',
+            color: '#64748B',
           }}>
             <span>🔒 256-Bit SSL Encrypted</span>
             <span>•</span>
@@ -419,7 +427,8 @@ export default function LoginPage() {
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--accent-cyan)',
+                color: '#2563EB',
+                fontWeight: 600,
                 fontSize: 12,
                 cursor: 'pointer',
                 display: 'inline-flex',
