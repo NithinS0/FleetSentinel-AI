@@ -98,12 +98,12 @@ export default function DashboardPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', position: 'relative' }}>
-      {/* ── 5. DASHBOARD HERO HEADER ─────────────────────────────────── */}
+      {/* ── DASHBOARD HERO HEADER ─────────────────────────────────── */}
       <div style={{
         position: 'relative',
         padding: '24px 28px',
-        background: 'linear-gradient(135deg, rgba(10,29,44,0.95) 0%, rgba(14,38,56,0.85) 100%)',
-        border: '1px solid var(--border)',
+        background: 'linear-gradient(135deg, #FFFFFF 0%, #EFF6FF 60%, #F0F9FF 100%)',
+        border: '1px solid #BFDBFE',
         borderRadius: 'var(--r-xl)',
         overflow: 'hidden',
         boxShadow: 'var(--shadow-card)',
@@ -112,23 +112,31 @@ export default function DashboardPage() {
         <div style={{
           position: 'absolute',
           top: 0, right: 0, bottom: 0,
-          width: '55%',
+          width: '45%',
           pointerEvents: 'none',
-          opacity: 0.15,
+          opacity: 0.08,
           overflow: 'hidden',
+          maskImage: 'linear-gradient(to right, transparent, black 30%)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent, black 30%)',
         }}>
           <svg viewBox="0 0 800 200" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
             <path
               d="M0,100 Q100,40 200,100 T400,100 T600,100 T800,100"
               fill="none"
-              stroke="#19D3D1"
-              strokeWidth="2.5"
+              stroke="#0EA5E9"
+              strokeWidth="2"
             />
             <path
               d="M0,120 Q120,60 240,120 T480,120 T720,120 T800,120"
               fill="none"
-              stroke="#1688FF"
+              stroke="#1677FF"
               strokeWidth="2"
+            />
+            <path
+              d="M0,80 Q80,20 160,80 T320,80 T480,80 T640,80 T800,80"
+              fill="none"
+              stroke="#7C3AED"
+              strokeWidth="1.5"
             />
           </svg>
         </div>
@@ -145,9 +153,9 @@ export default function DashboardPage() {
                 gap: 5,
                 padding: '3px 9px',
                 borderRadius: 'var(--r-full)',
-                background: 'rgba(34,197,94,0.12)',
-                border: '1px solid rgba(34,197,94,0.3)',
-                color: 'var(--success)',
+                background: '#DCFCE7',
+                border: '1px solid #BBF7D0',
+                color: '#15803D',
                 fontSize: 11,
                 fontWeight: 700,
               }}>
@@ -176,18 +184,18 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: 10 }}>
             <button
-              className="btn btn-ghost"
+              className="btn btn-secondary"
               onClick={() => navigate('/fleet-map')}
-              style={{ fontSize: 12, background: 'var(--bg-app)', border: '1px solid var(--border)' }}
+              style={{ fontSize: 12 }}
             >
               <MapPin size={14} /> Full Geospatial Map
             </button>
             <button
               className="btn btn-primary"
               onClick={() => navigate('/copilot')}
-              style={{ fontSize: 12, background: 'linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-ai) 100%)' }}
+              style={{ fontSize: 12 }}
             >
               <Bot size={14} /> Launch AI Copilot
             </button>
@@ -195,37 +203,46 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── 6. KPI SECTION UPGRADE (HIERARCHICAL ASYMMETRIC) ─────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1.4fr) repeat(3, 1fr) 1.1fr', gap: 'var(--space-4)', alignItems: 'stretch' }}>
+      {/* ── KPI SECTION ─────────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 'var(--space-4)', alignItems: 'stretch' }}>
         {/* Primary Large Hero Metric */}
-        <div className="card" style={{
-          padding: '22px 24px',
-          background: 'linear-gradient(135deg, rgba(16,44,64,0.9), rgba(10,29,44,0.9))',
-          border: '1px solid rgba(22,136,255,0.3)',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-        }}>
+        <div
+          className="card"
+          onClick={() => navigate('/vehicles')}
+          style={{
+            padding: '18px 20px',
+            background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
+            border: '1px solid #BFDBFE',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            cursor: 'pointer',
+          }}
+        >
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--accent-blue)', textTransform: 'uppercase' }}>
-              PRIMARY ASSET BASE
+              CONNECTED VEHICLES
             </div>
-            <div style={{ fontSize: 38, fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.04em', lineHeight: 1.1, marginTop: 6 }}>
+            <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1.2, marginTop: 6 }}>
               <AnimCounter value={FLEET_SUMMARY.total} />
             </div>
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>
-              Connected Commercial Vehicles
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+              Commercial Fleet Units
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Status coverage:</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--success)' }}>100% CAN Telemetry</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, paddingTop: 10, borderTop: '1px solid #BFDBFE' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Coverage:</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--success)' }}>100% CAN Telemetry</span>
           </div>
         </div>
 
-        {/* Secondary: 91.2% Healthy */}
-        <div className="card" style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        {/* Fleet Health */}
+        <div
+          className="card"
+          onClick={() => navigate('/analytics')}
+          style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer' }}
+        >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>FLEET HEALTH</span>
@@ -239,12 +256,16 @@ export default function DashboardPage() {
             </div>
           </div>
           <div style={{ marginTop: 10 }}>
-            <MiniSparkline data={mkSpark(91, 1.2)} color="#22C55E" height={26} />
+            <MiniSparkline data={mkSpark(91, 1.2)} color="#16A34A" height={26} />
           </div>
         </div>
 
-        {/* Secondary: 7,840 At Risk */}
-        <div className="card" style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        {/* Elevated Risk */}
+        <div
+          className="card"
+          onClick={() => navigate('/predictions')}
+          style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer' }}
+        >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>ELEVATED RISK</span>
@@ -258,12 +279,16 @@ export default function DashboardPage() {
             </div>
           </div>
           <div style={{ marginTop: 10 }}>
-            <MiniSparkline data={mkSpark(7.8, 0.8)} color="#F59E0B" height={26} />
+            <MiniSparkline data={mkSpark(7.8, 0.8)} color="#D97706" height={26} />
           </div>
         </div>
 
-        {/* Secondary: 920 Critical */}
-        <div className="card" style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderColor: 'rgba(239,68,68,0.3)' }}>
+        {/* Critical Risk */}
+        <div
+          className="card"
+          onClick={() => navigate('/alerts')}
+          style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderColor: '#FECACA', cursor: 'pointer' }}
+        >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--critical)' }}>CRITICAL RISK</span>
@@ -277,16 +302,20 @@ export default function DashboardPage() {
             </div>
           </div>
           <div style={{ marginTop: 10 }}>
-            <MiniSparkline data={mkSpark(0.9, 0.2)} color="#EF4444" height={26} />
+            <MiniSparkline data={mkSpark(0.9, 0.2)} color="#DC2626" height={26} />
           </div>
         </div>
 
-        {/* Live Ingestion Metric */}
-        <div className="card" style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: 'rgba(14,38,56,0.6)' }}>
+        {/* Throughput */}
+        <div
+          className="card"
+          onClick={() => navigate('/settings')}
+          style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#F0F9FF', cursor: 'pointer' }}
+        >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent-cyan)' }}>THROUGHPUT</span>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-cyan)' }} />
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent-cyan)', animation: 'pulse 1.5s infinite' }} />
             </div>
             <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
               103,482
@@ -321,7 +350,7 @@ export default function DashboardPage() {
               {/* Outer Track */}
               <circle
                 cx="110" cy="110" r="85"
-                fill="none" stroke="rgba(148,163,184,0.1)" strokeWidth="14"
+                fill="none" stroke="#E2E8F0" strokeWidth="14"
               />
               {/* Healthy Segment (91.2%) */}
               <circle
@@ -334,8 +363,8 @@ export default function DashboardPage() {
               />
               <defs>
                 <linearGradient id="healthGrad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#19D3D1" />
-                  <stop offset="100%" stopColor="#22C55E" />
+                  <stop offset="0%" stopColor="#06B6D4" />
+                  <stop offset="100%" stopColor="#16A34A" />
                 </linearGradient>
               </defs>
             </svg>
@@ -352,18 +381,21 @@ export default function DashboardPage() {
           </div>
 
           {/* Surrounding Breakdown Pill Blocks */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-            <div style={{ background: 'var(--bg-app)', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 11, color: 'var(--success)', fontWeight: 600 }}>HEALTHY</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginTop: 2 }}>91,240</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+            <div style={{ background: '#F8FAFC', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', textAlign: 'center' }}>
+              <div style={{ fontSize: 11, color: 'var(--success)', fontWeight: 700, letterSpacing: '0.04em' }}>HEALTHY</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', marginTop: 2 }}>91,240</div>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>91.2% Normal</div>
             </div>
-            <div style={{ background: 'var(--bg-app)', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 11, color: 'var(--warning)', fontWeight: 600 }}>AT RISK</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginTop: 2 }}>7,840</div>
+            <div style={{ background: '#F8FAFC', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', textAlign: 'center' }}>
+              <div style={{ fontSize: 11, color: 'var(--warning)', fontWeight: 700, letterSpacing: '0.04em' }}>AT RISK</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', marginTop: 2 }}>7,840</div>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>7.8% Degraded</div>
             </div>
-            <div style={{ background: 'var(--bg-app)', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 11, color: 'var(--critical)', fontWeight: 600 }}>CRITICAL</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginTop: 2 }}>920</div>
+            <div style={{ background: '#F8FAFC', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', textAlign: 'center' }}>
+              <div style={{ fontSize: 11, color: 'var(--critical)', fontWeight: 700, letterSpacing: '0.04em' }}>CRITICAL</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', marginTop: 2 }}>920</div>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>0.9% Imminent</div>
             </div>
           </div>
         </div>
@@ -466,8 +498,10 @@ export default function DashboardPage() {
                     justifyContent: 'space-between',
                     padding: '12px 14px',
                     borderRadius: 8,
-                    background: isHero ? 'rgba(239,68,68,0.06)' : 'var(--bg-app)',
-                    border: isHero ? '1px solid rgba(239,68,68,0.3)' : '1px solid var(--border)',
+                    background: isHero ? '#FEF2F2' : 'var(--bg-app)',
+                    border: isHero ? '1px solid #FECACA' : '1px solid var(--border)',
+                    cursor: 'pointer',
+                    transition: 'all var(--t-std)',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -513,7 +547,7 @@ export default function DashboardPage() {
         {/* ── 11. PREDICTION TIMELINE HORIZON ────────────────────────── */}
         <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Clock size={16} color="var(--accent-blue)" />
                 <h3 style={{ fontSize: 16, fontWeight: 700 }}>Predicted Breakdown Horizon</h3>
@@ -525,14 +559,44 @@ export default function DashboardPage() {
             <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
               Upcoming breakdown probability timeline predicted prior to catastrophic component failure.
             </p>
+
+            {/* Urgency Stage Summary Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 14 }}>
+              <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--critical)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>&lt; 24h Critical</span>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--critical)', animation: 'pulse 1.5s infinite' }} />
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#991B1B', marginTop: 4 }}>1 Vehicle</div>
+                <div style={{ fontSize: 10, color: '#DC2626', marginTop: 2, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>TN01AB1234 • Misfire</div>
+              </div>
+
+              <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '10px 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.04em' }}>1–3 Days High</span>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warning)' }} />
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#92400E', marginTop: 4 }}>1 Vehicle</div>
+                <div style={{ fontSize: 10, color: '#D97706', marginTop: 2, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>KA04CD5678 • Battery</div>
+              </div>
+
+              <div style={{ background: '#F8FAFC', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>4–7 Days Moderate</span>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-blue)' }} />
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', marginTop: 4 }}>2 Vehicles</div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>Cooling & Trans.</div>
+              </div>
+            </div>
           </div>
 
           {/* Interactive Timeline Track */}
-          <div className="horizon-track" style={{ margin: '20px 0' }}>
+          <div className="horizon-track" style={{ margin: '16px 0' }}>
             <div className="horizon-point">
               <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>NOW</span>
               <div className="horizon-dot" />
-              <span style={{ fontSize: 10, color: 'var(--success)' }}>Nominal</span>
+              <span style={{ fontSize: 10, color: 'var(--success)', fontWeight: 600 }}>Nominal</span>
             </div>
 
             <div className="horizon-point">
@@ -550,7 +614,7 @@ export default function DashboardPage() {
             <div className="horizon-point">
               <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>5 DAYS</span>
               <div className="horizon-dot high" />
-              <span className="mono" style={{ fontSize: 11, color: 'var(--warning)' }}>MH12EF9012</span>
+              <span className="mono" style={{ fontSize: 11, color: 'var(--warning)', fontWeight: 600 }}>MH12EF9012</span>
             </div>
 
             <div className="horizon-point">
@@ -567,7 +631,7 @@ export default function DashboardPage() {
             <button
               className="btn btn-ghost"
               onClick={() => navigate('/predictions')}
-              style={{ fontSize: 11, padding: '4px 8px' }}
+              style={{ fontSize: 11, padding: '4px 8px', color: 'var(--accent-blue)' }}
             >
               Open Predictive Center <ChevronRight size={12} />
             </button>
@@ -584,7 +648,7 @@ export default function DashboardPage() {
               <h3 style={{ fontSize: 16, fontWeight: 700 }}>Live Telemetry Geospatial Grid</h3>
             </div>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-              Severity-aware active vehicle clusters with MapTiler dark spatial layer.
+              Severity-aware active vehicle clusters with OpenStreetMap geospatial telemetry layer.
             </p>
           </div>
 

@@ -3,65 +3,22 @@ import { useNavigate } from 'react-router-dom'
 import {
   Bell, AlertTriangle, ShieldAlert, CheckCircle2, Clock,
   Filter, Search, Download, RefreshCw, ChevronRight, Check,
-  Bot, ArrowUpRight, Wrench, ShieldCheck, X, FileText, Send,
+  Bot, ArrowUpRight, Wrench, ShieldCheck, X, FileText, Send, Sparkles,
 } from 'lucide-react'
-import { RECENT_ALERTS, FLEET_VEHICLES } from '../data/demoData'
-
-// Extended realistic fleet alerts dataset
-const INITIAL_ALERTS = [
-  ...RECENT_ALERTS.map(a => ({
-    ...a,
-    dtc: a.vehicle_id === 'TN01AB1234' ? 'P0301' : a.vehicle_id === 'KA04CD5678' ? 'BMS04' : a.vehicle_id === 'MH12EF9012' ? 'P0302' : 'DTC99',
-    fleet: FLEET_VEHICLES.find(v => v.vehicle_id === a.vehicle_id)?.fleet || 'Regional Fleet',
-    model: FLEET_VEHICLES.find(v => v.vehicle_id === a.vehicle_id)?.model || 'Fleet Unit',
-    assignedTo: a.status === 'ACKNOWLEDGED' ? 'Suresh M. (Depot 3)' : null,
-  })),
-  {
-    id: 'ALT007',
-    time: '10:02:18',
-    vehicle_id: 'KA06GH7890',
-    alert: 'BMS Cell Voltage Delta exceeds 180mV threshold',
-    severity: 'MEDIUM',
-    status: 'ACKNOWLEDGED',
-    evidence: 'Cell #14 underperforming under high regen braking loads',
-    dtc: 'BMS18',
-    fleet: 'Bangalore A',
-    model: 'Nexon EV',
-    assignedTo: 'Vikram S. (EV Bay)',
-  },
-  {
-    id: 'ALT008',
-    time: '09:47:50',
-    vehicle_id: 'GJ07ST7890',
-    alert: 'CNG Rail pressure fluctuation detected during acceleration',
-    severity: 'HIGH',
-    status: 'OPEN',
-    evidence: 'Pressure dropped 22 PSI below regulator nominal during throttle tip-in',
-    dtc: 'P0190',
-    fleet: 'Gujarat',
-    model: 'Ace CNG',
-    assignedTo: null,
-  },
-  {
-    id: 'ALT009',
-    time: '09:12:04',
-    vehicle_id: 'TN03CD2345',
-    alert: 'Hybrid Inverter Coolant Flow Rate below minimum threshold',
-    severity: 'LOW',
-    status: 'RESOLVED',
-    evidence: 'Flow rate dipped to 2.4 L/min for 8 mins; returned to nominal',
-    dtc: 'P0A93',
-    fleet: 'Chennai Metro',
-    model: 'Innova',
-    assignedTo: 'Anand R. (Depot 1)',
-    resolvedAt: '09:35:10',
-    resolutionNote: 'Coolant reservoir topped up and air bleed cycle completed.',
-  },
-]
+import { useAlertStore } from '../store/alertStore'
+import toast from 'react-hot-toast'
+import {
+  generateAlertsAuditReportHTML,
+  downloadReportPDF,
+  downloadReportHTML,
+  openReportPrintWindow,
+  downloadCSV,
+} from '../utils/reportTemplateGenerator'
 
 export default function AlertsPage() {
   const navigate = useNavigate()
-  const [alerts, setAlerts] = useState(INITIAL_ALERTS)
+  const { alerts, acknowledgeAlert, acknowledgeAll, resolveAlert, addAlert } = useAlertStore()
+
   const [search, setSearch] = useState('')
   const [severityFilter, setSeverityFilter] = useState('ALL')
   const [statusFilter, setStatusFilter] = useState('ALL')
@@ -70,12 +27,6 @@ export default function AlertsPage() {
   const [activeModalAlert, setActiveModalAlert] = useState(null)
   const [resolveNote, setResolveNote] = useState('')
   const [resolveType, setResolveType] = useState('Work Order Dispatched')
-  const [toastMessage, setToastMessage] = useState(null)
-
-  const showToast = (msg) => {
-    setToastMessage(msg)
-    setTimeout(() => setToastMessage(null), 3500)
-  }
 
   // Filtered alerts
   const filteredAlerts = useMemo(() => {
@@ -124,19 +75,20 @@ export default function AlertsPage() {
     const total = alerts.length
     const critical = alerts.filter(a => a.severity === 'CRITICAL' && a.status !== 'RESOLVED').length
     const high = alerts.filter(a => a.severity === 'HIGH' && a.status !== 'RESOLVED').length
+    const medium = alerts.filter(a => a.severity === 'MEDIUM' && a.status !== 'RESOLVED').length
     const open = alerts.filter(a => a.status === 'OPEN').length
     const resolved = alerts.filter(a => a.status === 'RESOLVED').length
-    return { total, critical, high, open, resolved }
+    return { total, critical, high, medium, open, resolved }
   }, [alerts])
 
   const handleAcknowledge = (id) => {
-    setAlerts(prev => prev.map(a => a.id === id ? { ...a, status: 'ACKNOWLEDGED', assignedTo: 'Current User (Operations)' } : a))
-    showToast(`Alert ${id} acknowledged. Status set to In Progress.`)
+    acknowledgeAlert(id)
+    toast.success(`Alert ${id} acknowledged`)
   }
 
   const handleAcknowledgeAll = () => {
-    setAlerts(prev => prev.map(a => a.status === 'OPEN' ? { ...a, status: 'ACKNOWLEDGED', assignedTo: 'Operations Center' } : a))
-    showToast('All open alerts have been acknowledged.')
+    acknowledgeAll()
+    toast.success('All open alerts have been acknowledged')
   }
 
   const handleOpenResolveModal = (alert) => {
@@ -146,14 +98,8 @@ export default function AlertsPage() {
 
   const handleConfirmResolve = () => {
     if (!activeModalAlert) return
-    const nowStr = new Date().toLocaleTimeString('en-US', { hour12: false })
-    setAlerts(prev => prev.map(a => a.id === activeModalAlert.id ? {
-      ...a,
-      status: 'RESOLVED',
-      resolvedAt: nowStr,
-      resolutionNote: `${resolveType}: ${resolveNote}`,
-    } : a))
-    showToast(`Alert ${activeModalAlert.id} marked as RESOLVED.`)
+    resolveAlert(activeModalAlert.id, resolveNote, resolveType)
+    toast.success(`Alert ${activeModalAlert.id} marked as RESOLVED`)
     setActiveModalAlert(null)
   }
 
@@ -173,8 +119,8 @@ export default function AlertsPage() {
       model: 'Supro',
       assignedTo: null,
     }
-    setAlerts(prev => [newAlert, ...prev])
-    showToast(`⚠️ Live stream ingestion: Critical Alert ${newId} triggered for MH12EF9012!`)
+    addAlert(newAlert)
+    toast.error(`⚠️ Live stream ingestion: Critical Alert ${newId} triggered for MH12EF9012!`, { duration: 4000 })
   }
 
   const handleToggleSelect = (id) => {
@@ -191,18 +137,23 @@ export default function AlertsPage() {
     }
   }
 
+  const handleDownloadAuditReport = async () => {
+    const filterDesc = `Severity: ${severityFilter} | Status: ${statusFilter} ${search ? `| Search: "${search}"` : ''}`
+    const html = generateAlertsAuditReportHTML({
+      alerts: filteredAlerts,
+      filterInfo: filterDesc,
+      generatedBy: 'FleetSentinel SOC Controller (admin)',
+    })
+    await downloadReportPDF(`Telemetry_Alert_Audit_${new Date().toISOString().slice(0, 10)}.pdf`, html)
+  }
+
   const handleExportCSV = () => {
     const headers = 'Alert ID,Time,Vehicle ID,Severity,Status,DTC,Model,Fleet,Evidence\n'
     const rows = filteredAlerts.map(a =>
       `"${a.id}","${a.time}","${a.vehicle_id}","${a.severity}","${a.status}","${a.dtc || ''}","${a.model}","${a.fleet}","${a.evidence.replace(/"/g, '""')}"`
     ).join('\n')
-    const blob = new Blob([headers + rows], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `FleetSentinel_Alerts_${new Date().toISOString().slice(0, 10)}.csv`
-    link.click()
-    showToast('Alert log exported to CSV.')
+    downloadCSV(`FleetSentinel_Alerts_${new Date().toISOString().slice(0, 10)}.csv`, headers + rows)
+    toast.success('Alert log exported to CSV')
   }
 
   const SEV_BADGE_STYLE = {
@@ -213,206 +164,284 @@ export default function AlertsPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div style={{
-          position: 'fixed',
-          bottom: 24,
-          right: 24,
-          zIndex: 9999,
-          background: 'var(--bg-elevated)',
-          border: '1px solid var(--accent-cyan)',
-          boxShadow: 'var(--shadow-lg)',
-          borderRadius: 'var(--r-md)',
-          padding: '12px 20px',
-          color: 'var(--text-primary)',
-          fontSize: 13,
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          animation: 'fadeIn 0.2s ease',
-        }}>
-          <CheckCircle2 size={18} color="var(--accent-cyan)" />
-          {toastMessage}
-        </div>
-      )}
-
-      {/* Page Header */}
-      <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingTop: 4 }}>
+      {/* ── Page Header ─────────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14 }}>
         <div>
-          <div className="flex items-center gap-3">
-            <h1 style={{ fontSize: 24, fontWeight: 700 }}>Telemetry Alert Center</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: 0 }}>
+              Telemetry Alert Center
+            </h1>
             <span style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              background: 'rgba(34,197,94,0.12)',
-              border: '1px solid rgba(34,197,94,0.3)',
-              color: 'var(--success)',
-              fontSize: 11,
-              fontWeight: 600,
-              padding: '3px 8px',
+              background: '#F0FDF4',
+              border: '1px solid #BBF7D0',
+              color: '#16A34A',
+              fontSize: 11.5,
+              fontWeight: 700,
+              padding: '3px 10px',
               borderRadius: 'var(--r-full)',
             }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)', animation: 'pulse 2s infinite' }} />
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16A34A', display: 'inline-block' }} />
               Stream Connected: 103,482 evt/s
             </span>
           </div>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 4, marginBottom: 0 }}>
             Real-time anomaly triggers, diagnostic trouble codes, and operational interventions across 100,000 vehicles.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <button
-            className="btn btn-ghost"
             onClick={handleSimulateNewAlert}
-            title="Simulate telemetry stream spike"
-            style={{ fontSize: 12 }}
+            title="Simulate real-time telemetry stream alert"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 12.5,
+              fontWeight: 600,
+              padding: '7px 14px',
+              borderRadius: 8,
+              background: '#FFFFFF',
+              border: '1px solid #E2E8F0',
+              color: '#334155',
+              cursor: 'pointer',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              transition: 'all 0.15s ease',
+            }}
           >
-            <RefreshCw size={14} /> Simulate Ingestion Event
+            <Sparkles size={13} style={{ color: '#2563EB' }} />
+            Simulate Ingestion Event
           </button>
+
           <button
-            className="btn btn-ghost"
+            onClick={handleDownloadAuditReport}
+            title="Download executive incident & alert audit report (HTML/Printable PDF)"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 12.5,
+              fontWeight: 600,
+              padding: '7px 14px',
+              borderRadius: 8,
+              background: '#EFF6FF',
+              border: '1px solid #BFDBFE',
+              color: '#2563EB',
+              cursor: 'pointer',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <FileText size={13} />
+            Download Audit Report
+          </button>
+
+          <button
             onClick={handleExportCSV}
-            style={{ fontSize: 12 }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 12.5,
+              fontWeight: 600,
+              padding: '7px 14px',
+              borderRadius: 8,
+              background: '#FFFFFF',
+              border: '1px solid #E2E8F0',
+              color: '#334155',
+              cursor: 'pointer',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              transition: 'all 0.15s ease',
+            }}
           >
-            <Download size={14} /> Export CSV
+            <Download size={13} />
+            Export CSV
           </button>
+
           <button
-            className="btn btn-primary"
             onClick={handleAcknowledgeAll}
             disabled={stats.open === 0}
-            style={{ fontSize: 12 }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 12.5,
+              fontWeight: 600,
+              padding: '7px 16px',
+              borderRadius: 8,
+              background: stats.open === 0
+                ? '#94A3B8'
+                : 'linear-gradient(135deg, #1E40AF 0%, #2563EB 100%)',
+              border: 'none',
+              color: '#FFFFFF',
+              cursor: stats.open === 0 ? 'not-allowed' : 'pointer',
+              boxShadow: '0 2px 4px rgba(37,99,235,0.2)',
+              transition: 'all 0.15s ease',
+            }}
           >
-            <Check size={14} /> Acknowledge All ({stats.open})
+            <Check size={14} />
+            Acknowledge All ({stats.open})
           </button>
         </div>
       </div>
 
-      {/* Operational Inbox KPI Banner (Section 19: Critical 12, High 48, Medium 124, Resolved 1,284) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 'var(--space-4)' }}>
+      {/* ── Operational Inbox KPI Banner ─────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 14 }}>
+        {/* CRITICAL */}
         <div
-          className="card"
           onClick={() => setSeverityFilter(severityFilter === 'CRITICAL' ? 'ALL' : 'CRITICAL')}
           style={{
             padding: '16px 20px',
             cursor: 'pointer',
-            borderLeft: '4px solid var(--critical)',
-            background: severityFilter === 'CRITICAL' ? 'var(--bg-elevated)' : 'var(--bg-card)',
-            transition: 'all 0.2s ease',
+            borderLeft: '4px solid #DC2626',
+            background: severityFilter === 'CRITICAL' ? '#FEF2F2' : '#FFFFFF',
+            border: `1px solid ${severityFilter === 'CRITICAL' ? '#FCA5A5' : '#E2E8F0'}`,
+            borderLeftWidth: 4,
+            borderRadius: 10,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            transition: 'all 0.15s ease',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>CRITICAL</span>
-            <ShieldAlert size={16} color="var(--critical)" />
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#DC2626', letterSpacing: '0.04em' }}>CRITICAL</span>
+            <ShieldAlert size={16} color="#DC2626" />
           </div>
-          <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--critical)', marginTop: 4, letterSpacing: '-0.02em' }}>
-            12
+          <div style={{ fontSize: 32, fontWeight: 900, color: '#DC2626', marginTop: 4, letterSpacing: '-0.02em' }}>
+            {stats.critical}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: '#64748B', marginTop: 2, fontWeight: 500 }}>
             Immediate intervention required
           </div>
         </div>
 
+        {/* HIGH */}
         <div
-          className="card"
           onClick={() => setSeverityFilter(severityFilter === 'HIGH' ? 'ALL' : 'HIGH')}
           style={{
             padding: '16px 20px',
             cursor: 'pointer',
-            borderLeft: '4px solid var(--risk-high)',
-            background: severityFilter === 'HIGH' ? 'var(--bg-elevated)' : 'var(--bg-card)',
-            transition: 'all 0.2s ease',
+            borderLeft: '4px solid #EA580C',
+            background: severityFilter === 'HIGH' ? '#FFF7ED' : '#FFFFFF',
+            border: `1px solid ${severityFilter === 'HIGH' ? '#FDBA74' : '#E2E8F0'}`,
+            borderLeftWidth: 4,
+            borderRadius: 10,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            transition: 'all 0.15s ease',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>HIGH</span>
-            <AlertTriangle size={16} color="var(--risk-high)" />
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#EA580C', letterSpacing: '0.04em' }}>HIGH</span>
+            <AlertTriangle size={16} color="#EA580C" />
           </div>
-          <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--risk-high)', marginTop: 4, letterSpacing: '-0.02em' }}>
-            48
+          <div style={{ fontSize: 32, fontWeight: 900, color: '#EA580C', marginTop: 4, letterSpacing: '-0.02em' }}>
+            {stats.high}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: '#64748B', marginTop: 2, fontWeight: 500 }}>
             Horizon: 2–5 days
           </div>
         </div>
 
+        {/* MEDIUM */}
         <div
-          className="card"
           onClick={() => setSeverityFilter(severityFilter === 'MEDIUM' ? 'ALL' : 'MEDIUM')}
           style={{
             padding: '16px 20px',
             cursor: 'pointer',
-            borderLeft: '4px solid var(--warning)',
-            background: severityFilter === 'MEDIUM' ? 'var(--bg-elevated)' : 'var(--bg-card)',
-            transition: 'all 0.2s ease',
+            borderLeft: '4px solid #D97706',
+            background: severityFilter === 'MEDIUM' ? '#FFFBEB' : '#FFFFFF',
+            border: `1px solid ${severityFilter === 'MEDIUM' ? '#FCD34D' : '#E2E8F0'}`,
+            borderLeftWidth: 4,
+            borderRadius: 10,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            transition: 'all 0.15s ease',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>MEDIUM</span>
-            <Bell size={16} color="var(--warning)" />
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#D97706', letterSpacing: '0.04em' }}>MEDIUM</span>
+            <Bell size={16} color="#D97706" />
           </div>
-          <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--warning)', marginTop: 4, letterSpacing: '-0.02em' }}>
-            124
+          <div style={{ fontSize: 32, fontWeight: 900, color: '#D97706', marginTop: 4, letterSpacing: '-0.02em' }}>
+            {stats.medium}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: '#64748B', marginTop: 2, fontWeight: 500 }}>
             Sub-threshold telemetry drifts
           </div>
         </div>
 
+        {/* RESOLVED */}
         <div
-          className="card"
           onClick={() => setStatusFilter(statusFilter === 'RESOLVED' ? 'ALL' : 'RESOLVED')}
           style={{
             padding: '16px 20px',
             cursor: 'pointer',
-            borderLeft: '4px solid var(--success)',
-            background: statusFilter === 'RESOLVED' ? 'var(--bg-elevated)' : 'var(--bg-card)',
-            transition: 'all 0.2s ease',
+            borderLeft: '4px solid #16A34A',
+            background: statusFilter === 'RESOLVED' ? '#F0FDF4' : '#FFFFFF',
+            border: `1px solid ${statusFilter === 'RESOLVED' ? '#86EFAC' : '#E2E8F0'}`,
+            borderLeftWidth: 4,
+            borderRadius: 10,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            transition: 'all 0.15s ease',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em' }}>RESOLVED</span>
-            <ShieldCheck size={16} color="var(--success)" />
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#16A34A', letterSpacing: '0.04em' }}>RESOLVED</span>
+            <ShieldCheck size={16} color="#16A34A" />
           </div>
-          <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--success)', marginTop: 4, letterSpacing: '-0.02em' }}>
-            1,284
+          <div style={{ fontSize: 32, fontWeight: 900, color: '#16A34A', marginTop: 4, letterSpacing: '-0.02em' }}>
+            {stats.resolved.toLocaleString()}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: '#64748B', marginTop: 2, fontWeight: 500 }}>
             Closed in past 30 days
           </div>
         </div>
       </div>
 
-      {/* Filter Toolbar & Grouping Options */}
-      <div className="card" style={{ padding: 'var(--space-4)' }}>
+      {/* ── Filter Toolbar & Grouping Options ───────────────────── */}
+      <div
+        style={{
+          padding: '14px 18px',
+          background: '#FFFFFF',
+          border: '1px solid #E2E8F0',
+          borderRadius: 12,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           {/* Search box */}
-          <div style={{ position: 'relative', flex: 1, minWidth: 240 }}>
-            <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <div style={{ position: 'relative', flex: 1, minWidth: 260 }}>
+            <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
             <input
-              className="input"
               placeholder="Search alert, Vehicle ID (e.g. TN01AB1234), DTC code..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              style={{ paddingLeft: 36, fontSize: 13, width: '100%' }}
+              style={{
+                width: '100%',
+                padding: '9px 36px 9px 34px',
+                fontSize: 13,
+                borderRadius: 8,
+                background: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                color: '#0F172A',
+                outline: 'none',
+              }}
             />
             {search && (
               <button
                 onClick={() => setSearch('')}
-                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
               >
                 <X size={14} />
               </button>
             )}
           </div>
 
-          {/* Group By selector (Section 19: Vehicle, Failure type, Severity, Time) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-app)', padding: 4, borderRadius: 'var(--r-md)', border: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-cyan)', padding: '0 6px', display: 'flex', alignItems: 'center', gap: 4 }}>
+          {/* Group By selector */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#F8FAFC', padding: 4, borderRadius: 8, border: '1px solid #E2E8F0' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#2563EB', padding: '0 6px', display: 'flex', alignItems: 'center', gap: 4 }}>
               <Filter size={12} /> GROUP:
             </span>
             {[
@@ -426,13 +455,13 @@ export default function AlertsPage() {
                 key={g.id}
                 onClick={() => setGroupBy(g.id)}
                 style={{
-                  background: groupBy === g.id ? 'var(--accent-blue)' : 'transparent',
+                  background: groupBy === g.id ? '#2563EB' : 'transparent',
                   border: 'none',
-                  color: groupBy === g.id ? '#fff' : 'var(--text-muted)',
-                  fontSize: 11,
+                  color: groupBy === g.id ? '#FFFFFF' : '#475569',
+                  fontSize: 11.5,
                   fontWeight: 600,
-                  padding: '4px 8px',
-                  borderRadius: 'var(--r-sm)',
+                  padding: '4px 9px',
+                  borderRadius: 6,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
@@ -443,20 +472,20 @@ export default function AlertsPage() {
           </div>
 
           {/* Severity selector pills */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-app)', padding: 4, borderRadius: 'var(--r-md)', border: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', padding: '0 6px' }}>SEVERITY:</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#F8FAFC', padding: 4, borderRadius: 8, border: '1px solid #E2E8F0' }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#64748B', padding: '0 6px' }}>SEVERITY:</span>
             {['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map(sev => (
               <button
                 key={sev}
                 onClick={() => setSeverityFilter(sev)}
                 style={{
-                  background: severityFilter === sev ? 'var(--navy-600)' : 'transparent',
-                  border: severityFilter === sev ? '1px solid var(--border-light)' : '1px solid transparent',
-                  color: severityFilter === sev ? 'var(--text-primary)' : 'var(--text-muted)',
-                  fontSize: 11,
+                  background: severityFilter === sev ? '#0F172A' : 'transparent',
+                  border: 'none',
+                  color: severityFilter === sev ? '#FFFFFF' : '#475569',
+                  fontSize: 11.5,
                   fontWeight: 600,
-                  padding: '4px 8px',
-                  borderRadius: 'var(--r-sm)',
+                  padding: '4px 9px',
+                  borderRadius: 6,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
@@ -467,20 +496,20 @@ export default function AlertsPage() {
           </div>
 
           {/* Status selector pills */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-app)', padding: 4, borderRadius: 'var(--r-md)', border: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', padding: '0 6px' }}>STATUS:</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#F8FAFC', padding: 4, borderRadius: 8, border: '1px solid #E2E8F0' }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#64748B', padding: '0 6px' }}>STATUS:</span>
             {['ALL', 'OPEN', 'ACKNOWLEDGED', 'RESOLVED'].map(st => (
               <button
                 key={st}
                 onClick={() => setStatusFilter(st)}
                 style={{
-                  background: statusFilter === st ? 'var(--navy-600)' : 'transparent',
-                  border: statusFilter === st ? '1px solid var(--border-light)' : '1px solid transparent',
-                  color: statusFilter === st ? 'var(--text-primary)' : 'var(--text-muted)',
-                  fontSize: 11,
+                  background: statusFilter === st ? '#0F172A' : 'transparent',
+                  border: 'none',
+                  color: statusFilter === st ? '#FFFFFF' : '#475569',
+                  fontSize: 11.5,
                   fontWeight: 600,
-                  padding: '4px 8px',
-                  borderRadius: 'var(--r-sm)',
+                  padding: '4px 9px',
+                  borderRadius: 6,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
@@ -492,72 +521,101 @@ export default function AlertsPage() {
         </div>
       </div>
 
-      {/* Alerts Table */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: 'var(--space-4) var(--space-6)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'between' }}>
+      {/* Alerts Table Card */}
+      <div
+        style={{
+          background: '#FFFFFF',
+          border: '1px solid #E2E8F0',
+          borderRadius: 12,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            padding: '14px 20px',
+            borderBottom: '1px solid #E2E8F0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: '#FFFFFF',
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 700 }}>Telemetry Event Log</h3>
-            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', margin: 0 }}>Telemetry Event Log</h3>
+            <span style={{ fontSize: 12, color: '#64748B', background: '#F1F5F9', padding: '2px 8px', borderRadius: 999, fontWeight: 500 }}>
               Showing {filteredAlerts.length} of {alerts.length} events
             </span>
           </div>
           {selectedAlerts.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 12, color: 'var(--accent-cyan)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#2563EB' }}>
                 {selectedAlerts.length} selected
               </span>
               <button
-                className="btn btn-ghost"
                 onClick={() => {
-                  setAlerts(prev => prev.map(a => selectedAlerts.includes(a.id) ? { ...a, status: 'ACKNOWLEDGED' } : a))
+                  selectedAlerts.forEach(id => acknowledgeAlert(id))
                   setSelectedAlerts([])
-                  showToast(`Selected alerts acknowledged.`)
+                  toast.success(`${selectedAlerts.length} alerts acknowledged`)
                 }}
-                style={{ fontSize: 11, padding: '4px 10px' }}
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  padding: '5px 12px',
+                  borderRadius: 6,
+                  background: '#EFF6FF',
+                  border: '1px solid #BFDBFE',
+                  color: '#2563EB',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
               >
-                Acknowledge Selected
+                <Check size={13} /> Acknowledge Selected
               </button>
             </div>
           )}
         </div>
 
-        <div className="table-wrapper">
-          <table>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
-              <tr>
-                <th style={{ width: 36 }}>
+              <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                <th style={{ width: 40, padding: '12px 16px' }}>
                   <input
                     type="checkbox"
                     checked={selectedAlerts.length === filteredAlerts.length && filteredAlerts.length > 0}
                     onChange={handleSelectAll}
+                    style={{ cursor: 'pointer', accentColor: '#2563EB' }}
                   />
                 </th>
-                <th>Alert ID & Time</th>
-                <th>Vehicle & Model</th>
-                <th>Diagnostic Anomaly</th>
-                <th>Severity</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
+                <th style={{ padding: '12px 14px', fontSize: 11.5, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Alert ID & Time</th>
+                <th style={{ padding: '12px 14px', fontSize: 11.5, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Vehicle & Model</th>
+                <th style={{ padding: '12px 14px', fontSize: 11.5, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Diagnostic Anomaly</th>
+                <th style={{ padding: '12px 14px', fontSize: 11.5, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Severity</th>
+                <th style={{ padding: '12px 14px', fontSize: 11.5, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Status</th>
+                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredAlerts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--text-muted)' }}>
-                    <ShieldCheck size={36} color="var(--success)" style={{ margin: '0 auto 12px' }} />
-                    <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' }}>No matching alerts found</div>
-                    <div style={{ fontSize: 13, marginTop: 4 }}>All filtered systems are operating within nominal telemetry limits.</div>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '60px 16px', color: '#64748B' }}>
+                    <ShieldCheck size={40} color="#16A34A" style={{ margin: '0 auto 12px', display: 'block' }} />
+                    <div style={{ fontWeight: 700, fontSize: 16, color: '#0F172A' }}>No matching alerts found</div>
+                    <div style={{ fontSize: 13, marginTop: 4, color: '#64748B' }}>All filtered telemetry channels are operating within nominal limits.</div>
                   </td>
                 </tr>
               ) : (
                 Object.entries(groupedAlerts).map(([groupTitle, groupItems]) => (
                   <Fragment key={groupTitle}>
                     {groupBy !== 'NONE' && (
-                      <tr style={{ background: 'var(--bg-elevated)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
-                        <td colSpan={7} style={{ padding: '8px 16px', fontWeight: 700, fontSize: 12, color: 'var(--accent-cyan)' }}>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <tr style={{ background: '#F1F5F9', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0' }}>
+                        <td colSpan={7} style={{ padding: '8px 16px', fontWeight: 700, fontSize: 12, color: '#2563EB' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                             <span>📁 {groupTitle}</span>
-                            <span style={{ background: 'rgba(255,255,255,0.08)', padding: '1px 6px', borderRadius: 'var(--r-full)', fontSize: 11, color: 'var(--text-secondary)' }}>
+                            <span style={{ background: '#E2E8F0', padding: '1px 8px', borderRadius: 999, fontSize: 11, color: '#475569' }}>
                               {groupItems.length}
                             </span>
                           </span>
@@ -565,117 +623,159 @@ export default function AlertsPage() {
                       </tr>
                     )}
                     {groupItems.map(a => {
-                      const sevStyle = SEV_BADGE_STYLE[a.severity] || SEV_BADGE_STYLE.LOW
                       const isCriticalOpen = a.severity === 'CRITICAL' && a.status === 'OPEN'
+                      const isHigh = a.severity === 'HIGH'
+                      const isMedium = a.severity === 'MEDIUM'
+
+                      // Custom high-contrast light severity styles
+                      const sevBadge = a.severity === 'CRITICAL'
+                        ? { bg: '#FEF2F2', border: '#FCA5A5', color: '#DC2626' }
+                        : isHigh
+                        ? { bg: '#FFF7ED', border: '#FDBA74', color: '#EA580C' }
+                        : isMedium
+                        ? { bg: '#FEFCE8', border: '#FDE047', color: '#CA8A04' }
+                        : { bg: '#EFF6FF', border: '#BFDBFE', color: '#2563EB' }
 
                       return (
                         <tr
                           key={a.id}
                           style={{
-                            background: isCriticalOpen ? 'rgba(239,68,68,0.03)' : undefined,
-                            borderLeft: isCriticalOpen ? '3px solid var(--critical)' : '3px solid transparent',
+                            background: isCriticalOpen ? '#FFF5F5' : '#FFFFFF',
+                            borderBottom: '1px solid #E2E8F0',
+                            borderLeft: isCriticalOpen ? '4px solid #EF4444' : '4px solid transparent',
+                            transition: 'background 0.15s ease',
                           }}
                         >
-                          <td>
+                          <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
                             <input
                               type="checkbox"
                               checked={selectedAlerts.includes(a.id)}
                               onChange={() => handleToggleSelect(a.id)}
+                              style={{ cursor: 'pointer', accentColor: '#2563EB' }}
                             />
                           </td>
 
                           {/* Alert ID & Time */}
-                          <td>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <td style={{ padding: '14px', verticalAlign: 'middle' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <span className="mono" style={{ fontWeight: 700, fontSize: 12, color: 'var(--text-primary)' }}>
+                                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 12.5, color: '#0F172A' }}>
                                   {a.id}
                                 </span>
                                 {a.dtc && (
                                   <span style={{
-                                    fontSize: 10,
+                                    fontSize: 10.5,
                                     fontFamily: 'var(--font-mono)',
-                                    background: 'rgba(255,255,255,0.06)',
-                                    padding: '1px 5px',
+                                    fontWeight: 700,
+                                    background: '#F1F5F9',
+                                    border: '1px solid #E2E8F0',
+                                    padding: '1px 6px',
                                     borderRadius: 4,
-                                    color: 'var(--text-secondary)'
+                                    color: '#475569',
                                   }}>
                                     {a.dtc}
                                   </span>
                                 )}
                               </div>
-                              <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <Clock size={11} /> {a.time}
+                              <span style={{ fontSize: 11.5, color: '#64748B', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <Clock size={11.5} /> {a.time}
                               </span>
                             </div>
                           </td>
 
                           {/* Vehicle & Model */}
-                          <td>
+                          <td style={{ padding: '14px', verticalAlign: 'middle' }}>
                             <div
                               style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
                               onClick={() => navigate(`/vehicles/${a.vehicle_id}`)}
                             >
-                              <span className="mono" style={{ color: 'var(--accent-blue)', fontWeight: 600, fontSize: 12 }}>
+                              <span style={{ fontFamily: 'var(--font-mono)', color: '#2563EB', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
                                 {a.vehicle_id}
                               </span>
-                              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                              <span style={{ fontSize: 11.5, color: '#64748B' }}>
                                 {a.model} · {a.fleet}
                               </span>
                             </div>
                           </td>
 
                           {/* Anomaly & Evidence */}
-                          <td style={{ maxWidth: 380 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>
+                          <td style={{ padding: '14px', maxWidth: 380, verticalAlign: 'middle' }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 4 }}>
                               {a.alert}
                             </div>
-                            <div style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-                              <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>Telemetry Evidence:</span>
+                            <div style={{ fontSize: 11.5, color: '#475569', lineHeight: 1.4, display: 'flex', alignItems: 'flex-start', gap: 5 }}>
+                              <span style={{ color: '#0284C7', fontWeight: 700, flexShrink: 0 }}>Telemetry Evidence:</span>
                               <span>{a.evidence}</span>
                             </div>
                             {a.resolutionNote && (
-                              <div style={{ fontSize: 11, color: 'var(--success)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <Check size={11} /> {a.resolutionNote}
+                              <div style={{ fontSize: 11.5, color: '#16A34A', marginTop: 5, display: 'flex', alignItems: 'center', gap: 5, fontWeight: 600 }}>
+                                <Check size={12} /> {a.resolutionNote}
                               </div>
                             )}
                           </td>
 
                           {/* Severity */}
-                          <td>
+                          <td style={{ padding: '14px', verticalAlign: 'middle' }}>
                             <span style={{
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: 5,
+                              gap: 6,
                               fontSize: 11,
                               fontWeight: 700,
-                              padding: '3px 8px',
-                              borderRadius: 'var(--r-sm)',
-                              background: sevStyle.bg,
-                              border: `1px solid ${sevStyle.border}`,
-                              color: sevStyle.color,
+                              padding: '3px 9px',
+                              borderRadius: 6,
+                              background: sevBadge.bg,
+                              border: `1px solid ${sevBadge.border}`,
+                              color: sevBadge.color,
                             }}>
                               {a.severity === 'CRITICAL' && (
-                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: sevStyle.color, animation: isCriticalOpen ? 'pulse 1.2s infinite' : 'none' }} />
+                                <span style={{
+                                  width: 6,
+                                  height: 6,
+                                  borderRadius: '50%',
+                                  background: sevBadge.color,
+                                  animation: isCriticalOpen ? 'pulse 1.2s infinite' : 'none',
+                                }} />
                               )}
                               {a.severity}
                             </span>
                           </td>
 
                           {/* Status */}
-                          <td>
+                          <td style={{ padding: '14px', verticalAlign: 'middle' }}>
                             {a.status === 'OPEN' && (
-                              <span className="badge badge-critical" style={{ fontSize: 10 }}>
+                              <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                padding: '3px 8px',
+                                borderRadius: 6,
+                                fontSize: 10.5,
+                                fontWeight: 700,
+                                background: '#FEF2F2',
+                                border: '1px solid #FCA5A5',
+                                color: '#DC2626',
+                              }}>
                                 OPEN
                               </span>
                             )}
                             {a.status === 'ACKNOWLEDGED' && (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                <span className="badge badge-medium" style={{ fontSize: 10 }}>
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  padding: '3px 8px',
+                                  borderRadius: 6,
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  background: '#FEFCE8',
+                                  border: '1px solid #FDE047',
+                                  color: '#B45309',
+                                  width: 'fit-content',
+                                }}>
                                   ACKNOWLEDGED
                                 </span>
                                 {a.assignedTo && (
-                                  <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                                  <span style={{ fontSize: 10.5, color: '#64748B' }}>
                                     {a.assignedTo}
                                   </span>
                                 )}
@@ -683,10 +783,21 @@ export default function AlertsPage() {
                             )}
                             {a.status === 'RESOLVED' && (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                <span className="badge badge-normal" style={{ fontSize: 10 }}>
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  padding: '3px 8px',
+                                  borderRadius: 6,
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  background: '#F0FDF4',
+                                  border: '1px solid #86EFAC',
+                                  color: '#16A34A',
+                                  width: 'fit-content',
+                                }}>
                                   RESOLVED
                                 </span>
-                                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                                <span style={{ fontSize: 10.5, color: '#64748B' }}>
                                   at {a.resolvedAt}
                                 </span>
                               </div>
@@ -694,24 +805,47 @@ export default function AlertsPage() {
                           </td>
 
                           {/* Actions */}
-                          <td style={{ textAlign: 'right' }}>
+                          <td style={{ padding: '14px 16px', textAlign: 'right', verticalAlign: 'middle' }}>
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                               {a.status === 'OPEN' && (
                                 <button
-                                  className="btn btn-ghost"
                                   onClick={() => handleAcknowledge(a.id)}
-                                  style={{ fontSize: 11, padding: '4px 8px' }}
+                                  style={{
+                                    fontSize: 11.5,
+                                    fontWeight: 600,
+                                    padding: '5px 9px',
+                                    borderRadius: 6,
+                                    background: '#FFFFFF',
+                                    border: '1px solid #CBD5E1',
+                                    color: '#0F172A',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                                  }}
                                   title="Acknowledge alert"
                                 >
-                                  <Check size={13} /> Ack
+                                  <Check size={13} color="#2563EB" /> Ack
                                 </button>
                               )}
 
                               {a.status !== 'RESOLVED' && (
                                 <button
-                                  className="btn btn-ghost"
                                   onClick={() => handleOpenResolveModal(a)}
-                                  style={{ fontSize: 11, padding: '4px 8px', color: 'var(--success)' }}
+                                  style={{
+                                    fontSize: 11.5,
+                                    fontWeight: 600,
+                                    padding: '5px 9px',
+                                    borderRadius: 6,
+                                    background: '#F0FDF4',
+                                    border: '1px solid #BBF7D0',
+                                    color: '#16A34A',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                  }}
                                   title="Mark resolved with notes"
                                 >
                                   <CheckCircle2 size={13} /> Resolve
@@ -719,21 +853,42 @@ export default function AlertsPage() {
                               )}
 
                               <button
-                                className="btn btn-ghost"
                                 onClick={() => navigate(`/vehicles/${a.vehicle_id}`)}
-                                style={{ fontSize: 11, padding: '4px 8px' }}
+                                style={{
+                                  fontSize: 11.5,
+                                  fontWeight: 600,
+                                  padding: '5px 9px',
+                                  borderRadius: 6,
+                                  background: '#EFF6FF',
+                                  border: '1px solid #BFDBFE',
+                                  color: '#2563EB',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                }}
                                 title="Inspect vehicle telemetry & health"
                               >
                                 Inspect <ChevronRight size={13} />
                               </button>
 
                               <button
-                                className="btn btn-ghost"
                                 onClick={() => navigate('/copilot', { state: { initialPrompt: `Why did vehicle ${a.vehicle_id} trigger alert "${a.alert}"? What preventive maintenance is recommended?` } })}
-                                style={{ fontSize: 11, padding: '4px 8px', color: 'var(--accent-purple)' }}
+                                style={{
+                                  fontSize: 11.5,
+                                  fontWeight: 600,
+                                  padding: '5px 8px',
+                                  borderRadius: 6,
+                                  background: '#F5F3FF',
+                                  border: '1px solid #DDD6FE',
+                                  color: '#7C3AED',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                }}
                                 title="Query FleetSentinel AI Copilot"
                               >
-                                <Bot size={13} />
+                                <Bot size={14} />
                               </button>
                             </div>
                           </td>
@@ -753,7 +908,7 @@ export default function AlertsPage() {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(3,13,22,0.85)',
+          background: 'rgba(15, 23, 42, 0.45)',
           backdropFilter: 'blur(6px)',
           display: 'flex',
           alignItems: 'center',
@@ -761,47 +916,76 @@ export default function AlertsPage() {
           zIndex: 9999,
           padding: 16,
         }}>
-          <div className="card" style={{ width: '100%', maxWidth: 540, padding: 'var(--space-6)', boxShadow: 'var(--shadow-lg)', border: '1px solid var(--border-light)' }}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 size={20} color="var(--success)" />
-                <h3 style={{ fontSize: 18, fontWeight: 700 }}>Resolve Maintenance Alert</h3>
+          <div style={{
+            width: '100%',
+            maxWidth: 540,
+            padding: 24,
+            background: '#FFFFFF',
+            borderRadius: 16,
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #E2E8F0',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <CheckCircle2 size={20} color="#16A34A" />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', margin: 0 }}>Resolve Maintenance Alert</h3>
+                  <p style={{ fontSize: 12, color: '#64748B', margin: 0 }}>Record maintenance action and close this event</p>
+                </div>
               </div>
               <button
                 onClick={() => setActiveModalAlert(null)}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: 4 }}
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div style={{ background: 'var(--bg-app)', padding: 14, borderRadius: 'var(--r-md)', marginBottom: 16, border: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span className="mono" style={{ fontWeight: 700, color: 'var(--accent-blue)', fontSize: 13 }}>
+            <div style={{ background: '#F8FAFC', padding: 14, borderRadius: 10, marginBottom: 16, border: '1px solid #E2E8F0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#2563EB', fontSize: 13 }}>
                   {activeModalAlert.id} · {activeModalAlert.vehicle_id}
                 </span>
-                <span className={`badge badge-${activeModalAlert.severity.toLowerCase()}`}>
+                <span style={{
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: 6,
+                  background: activeModalAlert.severity === 'CRITICAL' ? '#FEF2F2' : '#FFF7ED',
+                  border: `1px solid ${activeModalAlert.severity === 'CRITICAL' ? '#FCA5A5' : '#FDBA74'}`,
+                  color: activeModalAlert.severity === 'CRITICAL' ? '#DC2626' : '#EA580C',
+                }}>
                   {activeModalAlert.severity}
                 </span>
               </div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', marginBottom: 4 }}>
                 {activeModalAlert.alert}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+              <div style={{ fontSize: 11.5, color: '#64748B' }}>
                 Evidence: {activeModalAlert.evidence}
               </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>
                   Resolution Action Category
                 </label>
                 <select
-                  className="input"
                   value={resolveType}
                   onChange={e => setResolveType(e.target.value)}
-                  style={{ width: '100%' }}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    background: '#FFFFFF',
+                    border: '1px solid #CBD5E1',
+                    fontSize: 13,
+                    color: '#0F172A',
+                    outline: 'none',
+                  }}
                 >
                   <option value="Work Order Dispatched">Work Order Dispatched to Depot</option>
                   <option value="Preventive Part Replaced">Component Replaced (Spark plug, filter, coolant)</option>
@@ -812,24 +996,59 @@ export default function AlertsPage() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>
                   Technician Action Notes
                 </label>
                 <textarea
-                  className="input"
                   rows={3}
                   value={resolveNote}
                   onChange={e => setResolveNote(e.target.value)}
                   placeholder="Enter details of parts replaced, mechanic verification, or road test..."
-                  style={{ width: '100%', resize: 'vertical' }}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    background: '#FFFFFF',
+                    border: '1px solid #CBD5E1',
+                    fontSize: 13,
+                    color: '#0F172A',
+                    outline: 'none',
+                    resize: 'vertical',
+                    boxSizing: 'border-box',
+                  }}
                 />
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
-                <button className="btn btn-ghost" onClick={() => setActiveModalAlert(null)}>
+                <button
+                  onClick={() => setActiveModalAlert(null)}
+                  style={{
+                    padding: '9px 16px',
+                    borderRadius: 8,
+                    background: '#F1F5F9',
+                    border: '1px solid #E2E8F0',
+                    color: '#475569',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
                   Cancel
                 </button>
-                <button className="btn btn-primary" onClick={handleConfirmResolve}>
+                <button
+                  onClick={handleConfirmResolve}
+                  style={{
+                    padding: '9px 16px',
+                    borderRadius: 8,
+                    background: '#16A34A',
+                    border: 'none',
+                    color: '#FFFFFF',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 3px rgba(22, 163, 74, 0.3)',
+                  }}
+                >
                   Confirm & Close Alert
                 </button>
               </div>

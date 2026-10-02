@@ -60,7 +60,7 @@ export default function LoginPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'radial-gradient(ellipse 100% 80% at 50% -20%, #0B2238 0%, #061522 65%, #030D16 100%)',
+      background: 'linear-gradient(135deg, #EFF6FF 0%, #F6F8FB 50%, #F0F9FF 100%)',
       padding: '24px 16px',
       position: 'relative',
       overflow: 'hidden',
@@ -68,23 +68,33 @@ export default function LoginPage() {
       {/* Ambient background glows */}
       <div style={{
         position: 'absolute',
-        top: '10%',
-        left: '15%',
-        width: 400,
-        height: 400,
+        top: '5%',
+        left: '10%',
+        width: 500,
+        height: 500,
         borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(22,136,255,0.08) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(22,119,255,0.06) 0%, transparent 70%)',
         pointerEvents: 'none',
       }} />
       <div style={{
         position: 'absolute',
-        bottom: '10%',
-        right: '15%',
-        width: 500,
-        height: 500,
+        bottom: '5%',
+        right: '10%',
+        width: 600,
+        height: 600,
         borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(24,214,209,0.06) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(6,182,212,0.05) 0%, transparent 70%)',
         pointerEvents: 'none',
+      }} />
+      {/* Subtle grid overlay */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        backgroundImage: 'linear-gradient(#E2E8F0 1px, transparent 1px), linear-gradient(90deg, #E2E8F0 1px, transparent 1px)',
+        backgroundSize: '60px 60px',
+        opacity: 0.4,
+        pointerEvents: 'none',
+        maskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%)',
       }} />
 
       {/* Main Login Container */}
@@ -205,12 +215,11 @@ export default function LoginPage() {
 
         {/* Right Column: Authentication Form Card */}
         <div style={{
-          background: 'rgba(16,40,60,0.85)',
-          border: '1px solid rgba(29,64,87,0.9)',
-          backdropFilter: 'blur(16px)',
+          background: '#FFFFFF',
+          border: '1px solid var(--border)',
           borderRadius: 20,
           padding: '36px 32px',
-          boxShadow: '0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(22,136,255,0.08)',
+          boxShadow: '0 8px 32px rgba(15,23,42,0.10), 0 1px 3px rgba(15,23,42,0.06)',
         }}>
           {/* Header */}
           <div style={{ marginBottom: 24 }}>
@@ -241,8 +250,8 @@ export default function LoginPage() {
                       justifyContent: 'space-between',
                       padding: '8px 12px',
                       borderRadius: 8,
-                      background: isSelected ? 'rgba(22,136,255,0.15)' : 'rgba(11,30,48,0.6)',
-                      border: isSelected ? '1px solid var(--accent-blue)' : '1px solid rgba(29,64,87,0.6)',
+                      background: isSelected ? '#EFF6FF' : '#F8FAFC',
+                      border: isSelected ? '1px solid #BFDBFE' : '1px solid var(--border)',
                       color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
                       cursor: 'pointer',
                       textAlign: 'left',
@@ -250,7 +259,7 @@ export default function LoginPage() {
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: isSelected ? 'var(--brand-400)' : 'var(--text-primary)' }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: isSelected ? 'var(--accent-blue)' : 'var(--text-primary)' }}>
                         {r.role}
                       </div>
                       <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>
@@ -367,8 +376,8 @@ export default function LoginPage() {
                 fontSize: 14,
                 fontWeight: 700,
                 borderRadius: 10,
-                background: 'linear-gradient(135deg, #1688FF 0%, #0F7AEB 100%)',
-                boxShadow: '0 4px 20px rgba(22,136,255,0.3)',
+                background: 'var(--accent-blue)',
+                boxShadow: '0 4px 16px rgba(22,119,255,0.25)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

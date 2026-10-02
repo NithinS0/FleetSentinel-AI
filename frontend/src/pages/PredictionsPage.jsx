@@ -4,8 +4,13 @@ import {
   Wrench, AlertTriangle, ShieldAlert, TrendingUp, TrendingDown,
   Clock, DollarSign, Activity, Bot, ChevronRight, CheckCircle2,
   Calendar, ArrowRight, Zap, Filter, Search, Sliders, X,
-  FileText, ShieldCheck, ChevronDown, ChevronUp, Check,
+  FileText, ShieldCheck, ChevronDown, ChevronUp, Check, Download,
 } from 'lucide-react'
+import {
+  generatePredictiveRiskReportHTML,
+  downloadReportPDF,
+  downloadReportHTML,
+} from '../utils/reportTemplateGenerator'
 import { TOP_PREDICTIONS, FLEET_VEHICLES, getWhatIfRisk, getWhatIfDowntime } from '../data/demoData'
 
 // Extended predictions dataset
@@ -144,10 +149,25 @@ export default function PredictionsPage() {
     setWorkOrderModal(null)
   }
 
+  const handleDownloadRiskReport = async () => {
+    const html = generatePredictiveRiskReportHTML({
+      predictions: filteredPredictions.map(p => ({
+        vehicle_id: p.vehicle_id,
+        component: p.failure_type,
+        prob: `${p.probability}%`,
+        ttf: p.eta,
+        risk: p.risk_level,
+        action: p.recommended_action,
+      })),
+      generatedBy: 'FleetSentinel ML Failure Inference Engine (v4.2)',
+    })
+    await downloadReportPDF(`Predictive_Risk_Forecast_${new Date().toISOString().slice(0, 10)}.pdf`, html)
+  }
+
   const RISK_BADGE = {
-    CRITICAL: { bg: 'rgba(239,68,68,0.15)', color: '#EF4444', border: 'rgba(239,68,68,0.4)' },
-    HIGH: { bg: 'rgba(249,115,22,0.15)', color: '#F97316', border: 'rgba(249,115,22,0.4)' },
-    MEDIUM: { bg: 'rgba(245,158,11,0.15)', color: '#F59E0B', border: 'rgba(245,158,11,0.4)' },
+    CRITICAL: { bg: '#FEF2F2', color: '#DC2626', border: '#FECACA' },
+    HIGH: { bg: '#FFF7ED', color: '#EA580C', border: '#FFEDD5' },
+    MEDIUM: { bg: '#FEFCE8', color: '#D97706', border: '#FEF08A' },
   }
 
   return (
@@ -159,12 +179,11 @@ export default function PredictionsPage() {
           bottom: 24,
           right: 24,
           zIndex: 9999,
-          background: 'var(--bg-elevated)',
-          border: '1px solid var(--accent-cyan)',
-          boxShadow: 'var(--shadow-lg)',
+          background: '#0F172A',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.18)',
           borderRadius: 'var(--r-md)',
           padding: '12px 20px',
-          color: 'var(--text-primary)',
+          color: '#FFFFFF',
           fontSize: 13,
           fontWeight: 600,
           display: 'flex',
@@ -172,7 +191,7 @@ export default function PredictionsPage() {
           gap: 10,
           animation: 'fadeIn 0.2s ease',
         }}>
-          <CheckCircle2 size={18} color="var(--accent-cyan)" />
+          <CheckCircle2 size={18} color="#22C55E" />
           {toastMessage}
         </div>
       )}
@@ -203,18 +222,26 @@ export default function PredictionsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
           <button
-            className="btn btn-ghost"
+            className="btn btn-secondary"
+            onClick={handleDownloadRiskReport}
+            style={{ fontSize: 12, padding: '7px 14px', display: 'inline-flex', alignItems: 'center', gap: 6, background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#2563EB' }}
+            title="Download official Predictive Maintenance Risk Forecast Brief (HTML/Printable PDF)"
+          >
+            <Download size={14} /> Download Risk Report
+          </button>
+          <button
+            className="btn btn-secondary"
             onClick={() => showToast('Fleet Risk Model Retrained with latest 2.4M telemetry points.')}
-            style={{ fontSize: 12 }}
+            style={{ fontSize: 12, padding: '7px 14px' }}
           >
             <Activity size={14} /> Retrain ML Models
           </button>
           <button
             className="btn btn-primary"
             onClick={() => navigate('/copilot', { state: { initialPrompt: 'Give me an executive summary of the top 3 vehicle failure risks in our fleet and the recommended work orders to dispatch today.' } })}
-            style={{ fontSize: 12, background: 'var(--gradient-purple)' }}
+            style={{ fontSize: 12, padding: '7px 14px' }}
           >
             <Bot size={14} /> Ask Copilot to Plan Work Orders
           </button>
@@ -222,89 +249,100 @@ export default function PredictionsPage() {
       </div>
 
       {/* KPI Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 'var(--space-4)' }}>
-        <div className="stat-card" style={{ borderColor: 'rgba(239,68,68,0.3)' }}>
-          <div className="stat-header">
-            <span className="stat-title">Critical Failure ETA &lt; 48h</span>
-            <div className="stat-icon" style={{ background: 'rgba(239,68,68,0.15)', color: 'var(--critical)' }}>
-              <ShieldAlert size={18} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 'var(--space-4)' }}>
+        <div className="card" style={{ padding: '16px 20px', background: '#FFFFFF', borderColor: '#FECACA' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--critical)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Critical Failure ETA &lt; 48h
+            </span>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--critical)' }}>
+              <ShieldAlert size={17} />
             </div>
           </div>
-          <div className="stat-value" style={{ color: 'var(--critical)' }}>
+          <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--critical)', marginTop: 4, letterSpacing: '-0.02em' }}>
             920 <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-muted)' }}>vehicles</span>
           </div>
-          <div className="stat-sub">
-            <span style={{ color: 'var(--critical)', fontWeight: 600 }}>Urgent intervention</span> required
+          <div style={{ fontSize: 11, color: 'var(--critical)', marginTop: 4, fontWeight: 600 }}>
+            Urgent maintenance intervention required
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-header">
-            <span className="stat-title">Estimated Cost Avoided</span>
-            <div className="stat-icon" style={{ background: 'rgba(34,197,94,0.15)', color: 'var(--success)' }}>
-              <DollarSign size={18} />
+        <div className="card" style={{ padding: '16px 20px', background: '#FFFFFF', borderColor: '#BBF7D0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--success)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Estimated Cost Avoided
+            </span>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--success)' }}>
+              <DollarSign size={17} />
             </div>
           </div>
-          <div className="stat-value" style={{ color: 'var(--success)' }}>
+          <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--success)', marginTop: 4, letterSpacing: '-0.02em' }}>
             $1.84M
           </div>
-          <div className="stat-sub" style={{ color: 'var(--text-muted)' }}>
-            Prevented engine seizures & breakdowns
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>
+            Prevented roadside breakdowns & seizures
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-header">
-            <span className="stat-title">Prediction Accuracy</span>
-            <div className="stat-icon" style={{ background: 'rgba(24,214,209,0.12)', color: 'var(--accent-cyan)' }}>
-              <CheckCircle2 size={18} />
+        <div className="card" style={{ padding: '16px 20px', background: '#FFFFFF' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Prediction Accuracy
+            </span>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#E0F2FE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-blue)' }}>
+              <CheckCircle2 size={17} />
             </div>
           </div>
-          <div className="stat-value">94.6%</div>
-          <div className="stat-sub">
-            <span style={{ color: 'var(--accent-cyan)' }}>Validated</span> against 142 historical failure cases
+          <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--text-primary)', marginTop: 4, letterSpacing: '-0.02em' }}>
+            94.6%
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>
+            Validated against 142 historical failure cases
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-header">
-            <span className="stat-title">Avg Lead Time to Breakdown</span>
-            <div className="stat-icon" style={{ background: 'rgba(22,136,255,0.12)', color: 'var(--accent-blue)' }}>
-              <Clock size={18} />
+        <div className="card" style={{ padding: '16px 20px', background: '#FFFFFF' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Avg Lead Time to Breakdown
+            </span>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+              <Clock size={17} />
             </div>
           </div>
-          <div className="stat-value">4.8 <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-muted)' }}>days</span></div>
-          <div className="stat-sub" style={{ color: 'var(--text-muted)' }}>
-            Sufficient buffer for scheduled depot servicing
+          <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--text-primary)', marginTop: 4, letterSpacing: '-0.02em' }}>
+            4.8 <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-muted)' }}>days</span>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>
+            Sufficient buffer for depot scheduling
           </div>
         </div>
       </div>
 
       {/* Interactive What-If Scenario Simulator Card */}
       <div className="card" style={{
-        background: 'linear-gradient(135deg, rgba(16,40,60,0.9), rgba(19,47,69,0.9))',
-        border: '1px solid rgba(24,214,209,0.25)',
+        background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)',
+        border: '1px solid #BFDBFE',
+        boxShadow: 'var(--shadow-card)',
+        padding: '22px 24px',
         position: 'relative',
         overflow: 'hidden',
       }}>
-        <div style={{
-          position: 'absolute',
-          top: -30,
-          right: -30,
-          width: 140,
-          height: 140,
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(24,214,209,0.15) 0%, transparent 70%)',
-          pointerEvents: 'none',
-        }} />
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
           <div className="flex items-center gap-2">
-            <Sliders size={18} color="var(--accent-cyan)" />
-            <h3 style={{ fontSize: 16, fontWeight: 700 }}>Interactive Maintenance Delay "What-If" Impact Simulator</h3>
+            <Sliders size={18} color="var(--accent-blue)" />
+            <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>Interactive Maintenance Delay "What-If" Impact Simulator</h3>
           </div>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-            Simulating impact on Hero Vehicle: <strong style={{ color: 'var(--brand-400)' }}>TN01AB1234 (Toyota HiAce)</strong>
+          <span style={{
+            fontSize: 12,
+            padding: '4px 10px',
+            borderRadius: 6,
+            background: '#EFF6FF',
+            border: '1px solid #BFDBFE',
+            color: 'var(--accent-blue)',
+            fontWeight: 600,
+          }}>
+            Target Vehicle: <strong>TN01AB1234 (Toyota HiAce)</strong>
           </span>
         </div>
 
@@ -312,10 +350,10 @@ export default function PredictionsPage() {
           Adjust the maintenance dispatch delay to observe the non-linear compounding risk curve and exponential roadside failure probability.
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20, alignItems: 'center' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24, alignItems: 'center' }}>
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
-              <span style={{ fontWeight: 600 }}>Dispatch Postponement:</span>
+              <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Dispatch Postponement:</span>
               <span style={{ color: delayDays === 0 ? 'var(--success)' : delayDays <= 2 ? 'var(--warning)' : 'var(--critical)', fontWeight: 700 }}>
                 {delayDays === 0 ? 'Immediate Intervention (Today)' : `Delayed by +${delayDays} Days`}
               </span>
@@ -329,13 +367,13 @@ export default function PredictionsPage() {
               onChange={e => setDelayDays(parseInt(e.target.value))}
               style={{ width: '100%', accentColor: delayDays === 0 ? 'var(--success)' : 'var(--critical)', cursor: 'pointer' }}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginTop: 6, fontWeight: 500 }}>
               <span>Day 0 (Now)</span>
               <span>+1 Day</span>
               <span>+2 Days</span>
               <span>+3 Days</span>
               <span>+4 Days</span>
-              <span>+5 Days (Catastrophic)</span>
+              <span style={{ color: 'var(--critical)', fontWeight: 600 }}>+5 Days (Catastrophic)</span>
             </div>
           </div>
 
@@ -344,37 +382,33 @@ export default function PredictionsPage() {
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
             gap: 12,
-            background: 'var(--bg-app)',
-            padding: 14,
-            borderRadius: 'var(--r-md)',
-            border: '1px solid var(--border)',
           }}>
-            <div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>ROAD FAILURE PROB</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: getWhatIfRisk(87, delayDays) > 95 ? 'var(--critical)' : 'var(--warning)' }}>
+            <div style={{ background: '#FFFFFF', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em' }}>ROAD FAILURE PROB</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: getWhatIfRisk(87, delayDays) > 95 ? 'var(--critical)' : 'var(--warning)', marginTop: 2 }}>
                 {getWhatIfRisk(87, delayDays)}%
               </div>
-              <div style={{ fontSize: 10, color: delayDays > 0 ? 'var(--critical)' : 'var(--success)' }}>
+              <div style={{ fontSize: 10, color: delayDays > 0 ? 'var(--critical)' : 'var(--success)', marginTop: 2, fontWeight: 600 }}>
                 {delayDays === 0 ? 'Minimal in-depot risk' : `+${getWhatIfRisk(87, delayDays) - 87}% escalated`}
               </div>
             </div>
 
-            <div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>DOWNTIME IMPACT</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)' }}>
-                {getWhatIfDowntime(87, delayDays)} <span style={{ fontSize: 12, fontWeight: 500 }}>hrs</span>
+            <div style={{ background: '#FFFFFF', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em' }}>DOWNTIME IMPACT</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)', marginTop: 2 }}>
+                {getWhatIfDowntime(87, delayDays)} <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-muted)' }}>hrs</span>
               </div>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
                 Depot vs roadside tow
               </div>
             </div>
 
-            <div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>ESTIMATED REPAIR</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: delayDays > 2 ? 'var(--critical)' : 'var(--text-primary)' }}>
+            <div style={{ background: '#FFFFFF', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em' }}>ESTIMATED REPAIR</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: delayDays > 2 ? 'var(--critical)' : 'var(--text-primary)', marginTop: 2 }}>
                 ${(240 * Math.pow(1.65, delayDays)).toFixed(0)}
               </div>
-              <div style={{ fontSize: 10, color: delayDays > 0 ? 'var(--critical)' : 'var(--text-muted)' }}>
+              <div style={{ fontSize: 10, color: delayDays > 0 ? 'var(--critical)' : 'var(--text-muted)', marginTop: 2 }}>
                 {delayDays === 0 ? 'Preventive parts only' : `+${((Math.pow(1.65, delayDays) - 1) * 100).toFixed(0)}% collateral`}
               </div>
             </div>
@@ -383,17 +417,17 @@ export default function PredictionsPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="card" style={{ padding: 'var(--space-4)' }}>
+      <div className="card" style={{ padding: '14px 20px', background: '#FFFFFF', border: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           {/* Search box */}
-          <div style={{ position: 'relative', flex: 1, minWidth: 240 }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: 260 }}>
             <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               className="input"
               placeholder="Search vehicle, make, failure mode..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              style={{ paddingLeft: 36, fontSize: 13, width: '100%' }}
+              style={{ paddingLeft: 36, fontSize: 13, width: '100%', height: 38 }}
             />
             {search && (
               <button
@@ -410,7 +444,7 @@ export default function PredictionsPage() {
             className="input"
             value={failureTypeFilter}
             onChange={e => setFailureTypeFilter(e.target.value)}
-            style={{ width: 190, fontSize: 13 }}
+            style={{ width: 190, fontSize: 13, height: 38 }}
           >
             <option value="ALL">All Failure Modes</option>
             <option value="ENGINE_MISFIRE">Engine Misfire</option>
@@ -426,7 +460,7 @@ export default function PredictionsPage() {
             className="input"
             value={riskFilter}
             onChange={e => setRiskFilter(e.target.value)}
-            style={{ width: 150, fontSize: 13 }}
+            style={{ width: 160, fontSize: 13, height: 38 }}
           >
             <option value="ALL">All Risk Levels</option>
             <option value="CRITICAL">Critical Risk</option>
@@ -435,7 +469,16 @@ export default function PredictionsPage() {
           </select>
 
           {/* Min probability slider */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 8px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '0 12px',
+            background: 'var(--bg-app)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--r-md)',
+            height: 38,
+          }}>
             <span style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
               Min Prob: <strong style={{ color: 'var(--text-primary)' }}>{minProb}%</strong>
             </span>
@@ -445,14 +488,14 @@ export default function PredictionsPage() {
               max="90"
               value={minProb}
               onChange={e => setMinProb(parseInt(e.target.value))}
-              style={{ width: 90, accentColor: 'var(--accent-blue)', cursor: 'pointer' }}
+              style={{ width: 90, accentColor: 'var(--brand-500)', cursor: 'pointer' }}
             />
           </div>
         </div>
       </div>
 
       {/* Predictions Cards List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         {filteredPredictions.length === 0 ? (
           <div className="card" style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--text-muted)' }}>
             <ShieldCheck size={36} color="var(--success)" style={{ margin: '0 auto 12px' }} />
@@ -472,8 +515,11 @@ export default function PredictionsPage() {
                 style={{
                   padding: 0,
                   overflow: 'hidden',
-                  borderColor: isExpanded ? 'var(--border-light)' : undefined,
-                  boxShadow: isExpanded ? 'var(--shadow-md)' : undefined,
+                  background: '#FFFFFF',
+                  border: isExpanded ? '1.5px solid var(--brand-500)' : '1px solid var(--border)',
+                  borderRadius: 'var(--r-lg)',
+                  boxShadow: isExpanded ? '0 4px 14px rgba(0,0,0,0.06)' : 'var(--shadow-sm)',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 {/* Header Row */}
@@ -484,17 +530,18 @@ export default function PredictionsPage() {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     cursor: 'pointer',
-                    background: isExpanded ? 'var(--bg-hover)' : 'transparent',
+                    background: isExpanded ? '#F8FAFC' : '#FFFFFF',
                     flexWrap: 'wrap',
-                    gap: 12,
+                    gap: 14,
+                    transition: 'background 0.15s ease',
                   }}
                   onClick={() => setExpandedId(isExpanded ? null : p.vehicle_id)}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                     {/* Probability radial / badge */}
                     <div style={{
-                      width: 52,
-                      height: 52,
+                      width: 54,
+                      height: 54,
                       borderRadius: 'var(--r-md)',
                       background: riskStyle.bg,
                       border: `1.5px solid ${riskStyle.border}`,
@@ -504,10 +551,10 @@ export default function PredictionsPage() {
                       justifyContent: 'center',
                       flexShrink: 0,
                     }}>
-                      <span style={{ fontSize: 16, fontWeight: 800, color: riskStyle.color, lineHeight: 1 }}>
+                      <span style={{ fontSize: 17, fontWeight: 900, color: riskStyle.color, lineHeight: 1 }}>
                         {p.probability}%
                       </span>
-                      <span style={{ fontSize: 9, fontWeight: 700, color: riskStyle.color, letterSpacing: 0.5, marginTop: 2 }}>
+                      <span style={{ fontSize: 9, fontWeight: 800, color: riskStyle.color, letterSpacing: '0.04em', marginTop: 3 }}>
                         {p.risk_level}
                       </span>
                     </div>
@@ -515,10 +562,10 @@ export default function PredictionsPage() {
                     {/* Vehicle info */}
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span className="mono" style={{ fontSize: 15, fontWeight: 700, color: 'var(--brand-400)' }}>
+                        <span className="mono" style={{ fontSize: 15, fontWeight: 700, color: 'var(--brand-600)' }}>
                           {p.vehicle_id}
                         </span>
-                        <span className="badge badge-normal" style={{ fontSize: 10 }}>
+                        <span className="badge badge-normal" style={{ fontSize: 11, background: '#F1F5F9', border: '1px solid #E2E8F0', color: 'var(--text-secondary)' }}>
                           {p.vehicle_type}
                         </span>
                         {isDispatched && (
@@ -526,49 +573,50 @@ export default function PredictionsPage() {
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: 4,
-                            fontSize: 10,
+                            fontSize: 11,
                             fontWeight: 700,
-                            color: 'var(--success)',
-                            background: 'rgba(34,197,94,0.12)',
-                            padding: '2px 6px',
-                            borderRadius: 4,
+                            color: '#15803D',
+                            background: '#DCFCE7',
+                            border: '1px solid #BBF7D0',
+                            padding: '2px 8px',
+                            borderRadius: 'var(--r-full)',
                           }}>
-                            <Check size={11} /> WORK ORDER DISPATCHED
+                            <Check size={12} /> WORK ORDER DISPATCHED
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>
                         {p.make} {p.model} · {p.depot}
                       </div>
                     </div>
                   </div>
 
                   {/* Failure Mode & ETA */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 28, flexWrap: 'wrap' }}>
                     <div>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>FAILURE MODE</div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.03em' }}>FAILURE MODE</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginTop: 2 }}>
                         {p.failure_type}
                       </div>
                     </div>
 
                     <div>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>ESTIMATED HORIZON</div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: p.risk_level === 'CRITICAL' ? 'var(--critical)' : 'var(--text-primary)' }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.03em' }}>ESTIMATED HORIZON</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: p.risk_level === 'CRITICAL' ? 'var(--critical)' : 'var(--text-primary)', marginTop: 2 }}>
                         {p.eta}
                       </div>
                     </div>
 
                     <div>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>PRIORITY SCORE</div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.03em' }}>PRIORITY SCORE</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginTop: 2 }}>
                         {p.priority_score}/100
                       </div>
                     </div>
 
                     {/* Toggle expand */}
                     <div style={{ color: 'var(--text-muted)', paddingLeft: 8 }}>
-                      {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                      {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                     </div>
                   </div>
                 </div>
@@ -578,18 +626,18 @@ export default function PredictionsPage() {
                   <div style={{
                     padding: '20px',
                     borderTop: '1px solid var(--border)',
-                    background: 'var(--bg-app)',
+                    background: '#F8FAFC',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 16,
                   }}>
                     {/* Evidence & Recommended action grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
                       {/* Left: Contributing Telemetry Evidence */}
-                      <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 'var(--r-md)', border: '1px solid var(--border)' }}>
+                      <div style={{ background: '#FFFFFF', padding: '16px 18px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-xs)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-                          <Activity size={15} color="var(--accent-cyan)" />
-                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
+                          <Activity size={15} color="var(--brand-600)" />
+                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.02em' }}>
                             PRIMARY TELEMETRY ANOMALY TRIGGERS
                           </span>
                         </div>
@@ -600,12 +648,14 @@ export default function PredictionsPage() {
                               alignItems: 'center',
                               gap: 8,
                               fontSize: 12,
+                              fontWeight: 500,
                               color: 'var(--text-secondary)',
-                              background: 'rgba(255,255,255,0.03)',
-                              padding: '6px 10px',
-                              borderRadius: 4,
+                              background: '#F1F5F9',
+                              border: '1px solid #E2E8F0',
+                              padding: '7px 12px',
+                              borderRadius: 6,
                             }}>
-                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-cyan)' }} />
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--brand-500)', flexShrink: 0 }} />
                               {sig}
                             </div>
                           ))}
@@ -613,18 +663,29 @@ export default function PredictionsPage() {
                       </div>
 
                       {/* Right: Prescribed Preventive Action */}
-                      <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 'var(--r-md)', border: '1px solid var(--border)' }}>
+                      <div style={{ background: '#FFFFFF', padding: '16px 18px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-xs)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
                           <Wrench size={15} color="var(--success)" />
-                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.02em' }}>
                             PRESCRIBED PREVENTIVE REPAIR ACTION
                           </span>
                         </div>
-                        <p style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5, marginBottom: 12 }}>
+                        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 14 }}>
                           {p.recommended_action}
                         </p>
-                        <div style={{ fontSize: 11, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <ShieldCheck size={14} />
+                        <div style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: '#15803D',
+                          background: '#F0FDF4',
+                          border: '1px solid #BBF7D0',
+                          padding: '8px 12px',
+                          borderRadius: 6,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                        }}>
+                          <ShieldCheck size={16} />
                           <span>Estimated roadside tow & collateral breakdown savings: <strong>${p.prevented_cost?.toLocaleString()}</strong></span>
                         </div>
                       </div>
@@ -633,29 +694,29 @@ export default function PredictionsPage() {
                     {/* Action Toolbar */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, paddingTop: 4 }}>
                       <button
-                        className="btn btn-ghost"
+                        className="btn btn-secondary"
                         onClick={() => navigate(`/vehicles/${p.vehicle_id}`)}
-                        style={{ fontSize: 12 }}
+                        style={{ fontSize: 12, padding: '7px 14px' }}
                       >
                         Deep Vehicle Telemetry <ArrowRight size={13} />
                       </button>
 
                       <button
-                        className="btn btn-ghost"
+                        className="btn btn-secondary"
                         onClick={() => navigate('/copilot', {
                           state: {
                             initialPrompt: `Vehicle ${p.vehicle_id} has an ${p.probability}% risk of ${p.failure_type} in ${p.eta}. Analyze the root cause and provide step-by-step diagnostic instructions for depot mechanics.`
                           }
                         })}
-                        style={{ fontSize: 12, color: 'var(--accent-purple)' }}
+                        style={{ fontSize: 12, padding: '7px 14px', color: '#7C3AED', borderColor: '#DDD6FE', background: '#F5F3FF' }}
                       >
-                        <Bot size={14} /> Query Copilot Diagnostics
+                        <Bot size={14} color="#7C3AED" /> Query Copilot Diagnostics
                       </button>
 
                       <button
                         className="btn btn-primary"
                         onClick={() => handleOpenWorkOrder(p)}
-                        style={{ fontSize: 12 }}
+                        style={{ fontSize: 12, padding: '7px 16px' }}
                       >
                         <Wrench size={14} /> {isDispatched ? 'Update Work Order' : 'Dispatch Work Order'}
                       </button>
@@ -673,39 +734,61 @@ export default function PredictionsPage() {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(3,13,22,0.85)',
-          backdropFilter: 'blur(6px)',
+          background: 'rgba(15, 23, 42, 0.45)',
+          backdropFilter: 'blur(4px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 9999,
           padding: 16,
         }}>
-          <div className="card" style={{ width: '100%', maxWidth: 540, padding: 'var(--space-6)', boxShadow: 'var(--shadow-lg)', border: '1px solid var(--border-light)' }}>
+          <div className="card" style={{
+            width: '100%',
+            maxWidth: 540,
+            background: '#FFFFFF',
+            padding: '24px 28px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--r-xl)',
+          }}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Wrench size={20} color="var(--brand-400)" />
-                <h3 style={{ fontSize: 18, fontWeight: 700 }}>Dispatch Proactive Work Order</h3>
+                <div style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  background: 'var(--brand-50)',
+                  border: '1px solid var(--brand-100)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Wrench size={18} color="var(--brand-600)" />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Dispatch Proactive Work Order</h3>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Trigger depot maintenance ahead of projected failure</div>
+                </div>
               </div>
               <button
                 onClick={() => setWorkOrderModal(null)}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div style={{ background: 'var(--bg-app)', padding: 14, borderRadius: 'var(--r-md)', marginBottom: 16, border: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span className="mono" style={{ fontWeight: 700, color: 'var(--brand-400)', fontSize: 14 }}>
+            <div style={{ background: '#F8FAFC', padding: 14, borderRadius: 'var(--r-md)', marginBottom: 18, border: '1px solid #E2E8F0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span className="mono" style={{ fontWeight: 700, color: 'var(--brand-600)', fontSize: 14 }}>
                   {workOrderModal.vehicle_id} ({workOrderModal.make} {workOrderModal.model})
                 </span>
-                <span className="badge badge-critical">
+                <span className="badge badge-critical" style={{ background: '#FEE2E2', color: '#DC2626', border: '1px solid #FECACA', fontWeight: 600 }}>
                   {workOrderModal.probability}% Risk · {workOrderModal.eta}
                 </span>
               </div>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-                Target Failure Mode: {workOrderModal.failure_type}
+                Target Failure Mode: <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{workOrderModal.failure_type}</span>
               </div>
             </div>
 
@@ -718,7 +801,7 @@ export default function PredictionsPage() {
                   className="input"
                   value={woPriority}
                   onChange={e => setWoPriority(e.target.value)}
-                  style={{ width: '100%' }}
+                  style={{ width: '100%', height: 38 }}
                 >
                   <option value="URGENT">URGENT (Ground vehicle within 4 hours)</option>
                   <option value="HIGH">HIGH (Schedule at next shift handover)</option>
@@ -734,7 +817,7 @@ export default function PredictionsPage() {
                   className="input"
                   value={woAssignedBay}
                   onChange={e => setWoAssignedBay(e.target.value)}
-                  style={{ width: '100%' }}
+                  style={{ width: '100%', height: 38 }}
                 >
                   <option value="Bay 2 - Electrical & Engine Diagnostic">Bay 2 - Electrical & Engine Diagnostic (Chennai Main)</option>
                   <option value="Bay 4 - EV High Voltage & Battery Diagnostics">Bay 4 - EV High Voltage & Battery Diagnostics (Bangalore)</option>
@@ -757,7 +840,7 @@ export default function PredictionsPage() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
-                <button className="btn btn-ghost" onClick={() => setWorkOrderModal(null)}>
+                <button className="btn btn-secondary" onClick={() => setWorkOrderModal(null)}>
                   Cancel
                 </button>
                 <button className="btn btn-primary" onClick={handleConfirmWorkOrder}>

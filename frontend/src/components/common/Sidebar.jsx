@@ -6,36 +6,36 @@ import {
   Search, ShieldAlert, Cpu, HeartPulse,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
+import { useAlertStore } from '../../store/alertStore'
 import { FLEET_SUMMARY } from '../../data/demoData'
-
-const NAV = [
-  { group: 'OVERVIEW', items: [
-    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/fleet-map',  icon: Map,            label: 'Fleet' },
-  ]},
-  { group: 'INTELLIGENCE', items: [
-    { to: '/vehicles',     icon: Car,         label: 'Vehicle Intelligence' },
-    { to: '/predictions',  icon: Wrench,      label: 'Predictive Maintenance' },
-    { to: '/fingerprints', icon: Fingerprint, label: 'Failure Fingerprints' },
-    { to: '/copilot',      icon: Bot,         label: 'AI Copilot', aiAccent: true },
-  ]},
-  { group: 'OPERATIONS', items: [
-    { to: '/alerts',       icon: Bell,        label: 'Alerts', badge: 6 },
-    { to: '/predictions',  icon: ShieldAlert, label: 'Maintenance' },
-    { to: '/reports',      icon: FileText,    label: 'Reports' },
-  ]},
-  { group: 'SYSTEM', items: [
-    { to: '/analytics', icon: BarChart3, label: 'Analytics' },
-    { to: '/settings',  icon: HeartPulse, label: 'System Health' },
-    { to: '/settings',  icon: Settings, label: 'Settings' },
-  ]},
-]
 
 export default function Sidebar({ collapsed, onToggle, onOpenCmd }) {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
+  const openAlertsCount = useAlertStore(s => s.alerts.filter(a => a.status === 'OPEN').length)
 
   const initial = (user?.full_name || user?.email || 'A').charAt(0).toUpperCase()
+
+  const navGroups = [
+    { group: 'OVERVIEW', items: [
+      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+      { to: '/fleet-map',  icon: Map,            label: 'Fleet Map' },
+    ]},
+    { group: 'INTELLIGENCE', items: [
+      { to: '/vehicles',     icon: Car,         label: 'Vehicle Intelligence' },
+      { to: '/predictions',  icon: Wrench,      label: 'Predictive Maintenance' },
+      { to: '/fingerprints', icon: Fingerprint, label: 'Failure Fingerprints' },
+      { to: '/copilot',      icon: Bot,         label: 'AI Copilot', aiAccent: true },
+    ]},
+    { group: 'OPERATIONS', items: [
+      { to: '/alerts',      icon: Bell,     label: 'Alerts', badge: openAlertsCount > 0 ? openAlertsCount : null },
+      { to: '/reports',     icon: FileText, label: 'Reports & Audits' },
+    ]},
+    { group: 'SYSTEM', items: [
+      { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+      { to: '/settings',  icon: Settings,   label: 'Settings & Health' },
+    ]},
+  ]
 
   return (
     <aside className="sidebar" style={{ width: collapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-w)' }}>
@@ -56,48 +56,20 @@ export default function Sidebar({ collapsed, onToggle, onOpenCmd }) {
             marginLeft: collapsed ? 'auto' : undefined,
             width: 24, height: 24,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'var(--bg-card)', border: '1px solid var(--border)',
+            background: 'var(--bg-app)', border: '1px solid var(--border)',
             borderRadius: '50%', cursor: 'pointer',
             color: 'var(--text-muted)',
             flexShrink: 0,
+            transition: 'all var(--t-std)',
           }}
         >
           {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
         </button>
       </div>
 
-      {/* Quick Search Shortcut */}
-      {!collapsed && onOpenCmd && (
-        <div style={{ padding: '8px 12px' }}>
-          <button
-            onClick={onOpenCmd}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '6px 10px',
-              borderRadius: 'var(--r-sm)',
-              background: 'rgba(14, 38, 56, 0.6)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-muted)',
-              fontSize: 12,
-              cursor: 'pointer',
-            }}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Search size={13} /> Search Platform...
-            </span>
-            <kbd style={{ fontSize: 9, padding: '1px 5px', background: 'var(--bg-elevated)', borderRadius: 3, border: '1px solid var(--border)' }}>
-              ⌘K
-            </kbd>
-          </button>
-        </div>
-      )}
-
       {/* Navigation */}
       <nav className="sidebar-nav">
-        {NAV.map(({ group, items }) => (
+        {navGroups.map(({ group, items }) => (
           <div key={group}>
             {!collapsed && <div className="nav-section-label">{group}</div>}
             {collapsed && <div style={{ height: 10 }} />}
